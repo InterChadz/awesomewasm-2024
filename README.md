@@ -15,6 +15,13 @@
 
 ![flow](flow.png)
 
+### Initial registration flow
+
+1. User sends registration tx to the contract with the network(s) they want to autocompound on and their address
+2. The contract creates one ICA on each network for the user
+3. Register periodic ICQ for the ICA balance (done in the callback, since we don't know the address beforehand)
+4. User send authz tx (for the delegate message) for each ICA, one transaction for each network they want to autocompound on.
+
 ## Screenshots
 
 | Landing Page                               | Restaking dashboard                        |
@@ -40,7 +47,7 @@ For detailed instructions to start the dApp, see the respective readme files:
 
 ## Links
 
-- [Vercel deployment](https://wasm-theta.vercel.app/)
+- [Vercel deployment](https://interchadz.vercel.app/)
 - [Presentation slides]()
 - [Demo video]()
 - [Github repo](https://github.com/InterChadz/awesomewasm-2024)

@@ -227,14 +227,12 @@ button:hover {
 
 .badge {
   display: inline-block;
-  padding: 0.25em 0.4em;
   font-size: 75%;
   font-weight: 700;
   line-height: 1;
   text-align: center;
   white-space: nowrap;
   vertical-align: baseline;
-  border-radius: 0.25rem;
   background-color: $third-color;
   color: white;
   margin-bottom: 1rem;
@@ -339,4 +337,11 @@ input:checked + .slider:before {
   .nav {
     align-items: center;
   }
+}
+
+
+.chain-image {
+  width: 24px;
+  height: auto;
+  margin: 0.25rem 0.5rem 0.25rem 0; /* Combined margin properties */
 }

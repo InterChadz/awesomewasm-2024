@@ -4,19 +4,19 @@
       <div class="col-md-6">
         <div class="chain-info">
           <div class="chain-header">
-            <span class="badge badge-primary">{{ chainName }}</span>
+            <span class="badge badge-primary"> <img :src="chainImage" alt="Chain Image" class="chain-image">{{ chainName }}</span>
             <div class="restaking-toggle">
-              <span class="toggle-label">{{ restakingEnabled ? 'Restaking Enabled ' : 'Enable Restaking ' }}</span>
-
+              <span class="toggle-label">Restaking Enabled: </span>
               <label class="switch">
                 <input type="checkbox" v-model="restakingEnabled" @change="toggleRestaking">
                 <span class="slider round"></span>
               </label>
             </div>
           </div>
-          <h4>Cost to Autocompound/User</h4>
+          
+          <h5>Cost to compound</h5>
           <p>{{ costToAutocompound }}</p>
-          <h4>Last Autocompound Executed</h4>
+          <h5>Last (auto)compound executed</h5>
           <p>{{ lastAutocompound }}</p>
         </div>
       </div>
@@ -44,6 +44,7 @@ export default {
   },
   props: {
     chainName: String,
+    chainImage: String,
     costToAutocompound: String,
     lastAutocompound: String,
     stakedValidators: Array,

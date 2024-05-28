@@ -16,7 +16,9 @@
         v-for="chain in chains"
         :key="chain.name"
         :chainName="chain.name"
-        :chainDetails="chain.details"
+        :chainImage="chain.image"
+        :costToAutocompound="chain.costToAutocompound"
+        :lastAutocompound="chain.lastAutocompound"
         :stakedValidators="chain.stakedValidators"
         :pendingRewards="chain.pendingRewards"
       />
@@ -42,8 +44,10 @@ export default {
       walletBalance: 2000, // Example data, replace with actual data
       chains: [
         {
-          name: 'Chain 1',
-          details: 'Details about Chain 1',
+          name: 'Cosmos Hub',
+          image: require('@/assets/chains/cosmos.svg'), 
+          costToAutocompound: '0.1 ATOM',
+          lastAutocompound: '1 hour ago',
           stakedValidators: [
             { name: 'Validator 1', amount: 100 },
             { name: 'Validator 2', amount: 150 },
@@ -53,8 +57,10 @@ export default {
           pendingRewards: 50
         },
         {
-          name: 'Chain 2',
-          details: 'Details about Chain 2',
+          name: 'Osmosis',
+          image: require('@/assets/chains/osmosis.svg'),
+          costToAutocompound: '0.05 OSMO',
+          lastAutocompound: '2 hours ago',
           stakedValidators: [
             { name: 'Validator 1', amount: 100 },
             { name: 'Validator 2', amount: 150 }
@@ -62,8 +68,10 @@ export default {
           pendingRewards: 75
         },
         {
-          name: 'Chain 3',
-          details: 'Details about Chain 3',
+          name: 'Neutron',
+          image: require('@/assets/chains/neutron.png'),
+          costToAutocompound: '0.01 NTRN',
+          lastAutocompound: '3 hours ago',
           stakedValidators: [
             { name: 'Validator 1', amount: 100 }
           ],
@@ -78,4 +86,34 @@ export default {
 <style lang="scss" scoped>
 @import "@/assets/style.scss";
 
+.header {
+  .balances {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+
+    .col-md-6 {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .col-md-6:last-child {
+      justify-content: flex-end;
+    }
+  }
+}
+
+.balance-component {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  text-align: center;
+  margin: 0.5rem;
+  min-width: 100px;
+  flex-grow: 1;
+}
 </style>

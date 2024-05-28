@@ -16,9 +16,6 @@ Prerequisites:
 
 ## Work up for grabs:
 
-- [ ] Implement query to get supported chains
-- [ ] Generate typescript types for the contract
-
 Later/if time:
 - [ ] Implement msg to update a supported chain
 - [ ] Implement msg to remove a supported chain

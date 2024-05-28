@@ -6,6 +6,19 @@
 @import "vue-toastification/src/scss/_icon";
 @import "vue-toastification/src/scss/animations/_bounce";
 
+$primary-color: white;
+$secondary-color: #f5f5f5;
+$third-color: #6e6e6e;
+
+.bg-primary {
+  background-color: $primary-color !important;
+}
+
+.bg-secondary {
+  background-color: $secondary-color !important;
+}
+
+
 html {
   overflow-x: hidden;
 
@@ -34,7 +47,7 @@ p:last-child, ul:last-child {
     margin-bottom: 2rem;
 
     .logo {
-      width: 150px;
+      width: 350px;
       height: auto;
       margin-bottom: 1rem;
     }
@@ -57,7 +70,6 @@ p:last-child, ul:last-child {
   }
 
   .features {
-    background-color: #f5f5f5;
     padding: 2rem 0;
     margin-bottom: 2rem;
 
@@ -66,7 +78,7 @@ p:last-child, ul:last-child {
     flex-wrap: wrap;
 
     .feature {
-      max-width: 300px;
+      max-width: 400px;
       margin: 1rem;
       
       h2 {
@@ -80,61 +92,234 @@ p:last-child, ul:last-child {
       }
     }
   }
+}
+.team {
+  text-align: center;
 
-  .team {
-    margin: 2rem 0;
+  h2 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
 
-    h2 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-    }
+  .team-members {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
 
-    .team-members {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
+    .team-member {
+      background-color: $secondary-color;
+      width: 300px;
+      margin: 1rem;
+      text-align: center;
 
-      .team-member {
-        max-width: 200px;
-        margin: 1rem;
-        text-align: center;
+      .team-photo {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-bottom: 0.5rem;
+      }
 
-        .team-photo {
-          width: 100px;
-          height: 100px;
-          border-radius: 50%;
-          object-fit: cover;
-          margin-bottom: 0.5rem;
-        }
+      h3 {
+        font-size: 1.2rem;
+        margin: 0.5rem 0;
+      }
 
-        h3 {
-          font-size: 1.2rem;
-          margin: 0.5rem 0;
-        }
+      .social-links {
+        display: flex;
+        justify-content: center;
+        
+        a {
+          margin: 0 0.5rem;
 
-        .social-links {
-          display: flex;
-          justify-content: center;
-          
-          a {
-            margin: 0 0.5rem;
-
-            .icon {
-              width: 24px;
-              height: 24px;
-            }
+          .icon {
+            width: 24px;
+            height: 24px;
           }
         }
       }
     }
   }
+}
 
-  .footer {
-    margin-top: 2rem;
+.footer {
+  margin-top: 2rem;
 
-    p {
-      font-size: 0.9rem;
-      color: #aaa;
-    }
+  p {
+    font-size: 0.9rem;
+    color: #aaa;
   }
+}
+
+
+.chain-components {
+
+  .chain-component {
+    padding: 1rem;
+    margin: 2rem;
+    background-color: $secondary-color;
+    border-radius: 10px;
+
+  }
+}
+
+.staking-page {
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+  }
+
+}
+
+.balance-table-component {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.total-staked, .pending-rewards {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+}
+
+.staked-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.staked-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.show-more {
+  text-align: center;
+}
+
+button {
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border: none;
+  border-radius: 5px;
+  background-color: $third-color;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #4e4e4e;
+}
+
+
+.chain-component {
+  margin-bottom: 2rem;
+}
+
+.chain-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25em 0.4em;
+  font-size: 75%;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: 0.25rem;
+  background-color: $third-color;
+  color: white;
+  margin-bottom: 1rem;
+}
+
+.restaking-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.toggle-label {
+  margin-left: 0.5rem;
+  font-size: 1rem;
+}
+
+/* Toggle Switch CSS */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 20px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #28a745;
+}
+
+input:checked + .slider:before {
+  transform: translateX(14px);
+}
+
+.chain-info {
+  background-color: #f5f5f5;
+  padding: 1rem;
+  border-radius: 10px;
+  margin-right: 1rem;
+}
+
+.user-info {
+  background-color: #f5f5f5;
+  padding: 1rem;
+  border-radius: 10px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.balance-component {
+  background-color: #f5f5f5;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  text-align: center;
+  margin: 0.5rem;
+  min-width: 100px;
 }

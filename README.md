@@ -11,6 +11,10 @@
 
 ⚙️ Built with interchian accounts + authz + Neutron Cron.
 
+## Flow
+
+![flow](flow.png)
+
 ## Screenshots
 
 | Landing Page                               | Restaking dashboard                        |

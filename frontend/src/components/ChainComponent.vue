@@ -24,8 +24,8 @@
         <div class="user-info">
           <BalanceTableComponent :stakedValidators="stakedValidators" :pendingRewards="pendingRewards" />
           <div class="action-buttons">
-            <button @click="compound">Compound / Restake</button>
-            <button @click="withdrawStaked">Withdraw Staked Amount</button>
+            <button @click="compound">Compound</button>
+            <button @click="withdrawStaked">Withdraw All</button>
             <button @click="withdrawRewards">Withdraw Rewards</button>
           </div>
         </div>
@@ -51,7 +51,6 @@ export default {
   },
   data() {
     return {
-      showMore: false,
       restakingEnabled: false
     };
   },

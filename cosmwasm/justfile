@@ -1,0 +1,16 @@
+
+platform := if arch() =~ "aarch64" {"linux/arm64"} else {"linux/amd64"}
+image := if arch() =~ "aarch64" {"cosmwasm/workspace-optimizer-arm64:0.15.1"} else {"cosmwasm/workspace-optimizer:0.15.1"}
+
+optimize:
+  #!/usr/bin/env sh
+  docker run --rm -v "$(pwd)":/code --platform {{platform}} \
+    --mount type=volume,source="$(basename "$(pwd)")_cache",target=/code/target \
+    --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
+    {{image}}
+
+unit-test:
+  cargo test
+
+deploy:
+  ./scripts/deploy.sh

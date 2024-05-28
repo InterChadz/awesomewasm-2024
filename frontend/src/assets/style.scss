@@ -323,3 +323,20 @@ input:checked + .slider:before {
   margin: 0.5rem;
   min-width: 100px;
 }
+
+.footer {
+
+  .logo {
+    height: 32px;
+  }
+
+  .icon {
+    height: 24px;
+    width: 24px;
+  }
+
+
+  .nav {
+    align-items: center;
+  }
+}

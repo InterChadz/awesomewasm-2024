@@ -3,9 +3,9 @@ import {createRouter, createWebHistory} from "vue-router";
 const routes = [
   {
     path: "/",
-    name: "Restaker",
+    name: "InterChadz",
     meta: {
-      title: "Restaker"
+      title: "InterChadz"
     },
     component: () => import("@/views/Home"),
   },

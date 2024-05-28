@@ -1,9 +1,13 @@
 <template>
   <div class="staking-page">
     <header class="header">
-      <div class="balances">
-        <ToppedUpBalanceComponent title="Topped Up NTRN" :balance="toppedUpBalance" />
-        <WalletBalanceComponent title="Wallet Balance" :balance="walletBalance" />
+      <div class="balances d-flex justify-content-between align-items-stretch">
+        <div class="col-md-6">
+          <ToppedUpBalanceComponent title="Topped Up Balance" :balance="toppedUpBalance" />
+        </div>
+        <div class="col-md-6 d-flex justify-content-end">
+          <WalletBalanceComponent title="Wallet Balance" :balance="walletBalance" />
+        </div>
       </div>
     </header>
 
@@ -73,4 +77,5 @@ export default {
 
 <style lang="scss" scoped>
 @import "@/assets/style.scss";
+
 </style>

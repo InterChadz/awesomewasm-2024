@@ -43,7 +43,7 @@ export default {
   data() {
     return {
       imageLogo,
-      title: "Restaker",
+      title: "InterChadz",
     };
   },
 };

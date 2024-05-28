@@ -1,7 +1,7 @@
 <template>
     <div class="balance-component">
-      <h3>{{ title }}</h3>
-      <p>{{ balance }}</p>
+      <h4>{{ title }}</h4>
+      <p>{{ balance }} NTRN</p>
     </div>
   </template>
   

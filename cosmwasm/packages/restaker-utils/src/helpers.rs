@@ -36,6 +36,22 @@ pub fn calculate_delegation_rewards(
             stake = stake * (Decimal::one().checked_sub(fraction)?);
             starting_period = height;
         }
+        // TODO: Just Go code for reference
+        // if endingHeight > startingHeight {
+        //     k.IterateValidatorSlashEventsBetween(ctx, del.GetValidatorAddr(), startingHeight, endingHeight,
+        //         func(height uint64, event types.ValidatorSlashEvent) (stop bool) {
+        //             endingPeriod := event.ValidatorPeriod
+        //             if endingPeriod > startingPeriod {
+        //                 rewards = rewards.Add(k.calculateDelegationRewardsBetween(ctx, val, startingPeriod, endingPeriod, stake)...)
+        //                 // Note: It is necessary to truncate so we don't allow withdrawing
+        //                 // more rewards than owed.
+        //                 stake = stake.MulTruncate(math.LegacyOneDec().Sub(event.Fraction))
+        //                 startingPeriod = endingPeriod
+        //             }
+        //             return false
+        //         },
+        //     )
+        // }
     }
 
     // A total stake sanity check; Recalculated final stake should be less than or
@@ -46,7 +62,29 @@ pub fn calculate_delegation_rewards(
 
     // Final stake sanity check
     if stake > current_stake {
-        let margin_of_err = Uint128::from(3u128); // Assuming a small margin of error
+        // AccountI for rounding inconsistencies between:
+        //
+        //     currentStake: calculated as in staking with a single computation
+        //     stake:        calculated as an accumulation of stake
+        //                   calculations across validator's distribution periods
+        //
+        // These inconsistencies are due to differing order of operations which
+        // will inevitably have different accumulated rounding and may lead to
+        // the smallest decimal place being one greater in stake than
+        // currentStake. When we calculated slashing by period, even if we
+        // round down for each slash fraction, it's possible due to how much is
+        // being rounded that we slash less when slashing by period instead of
+        // for when we slash without periods. In other words, the single slash,
+        // and the slashing by period could both be rounding down but the
+        // slashing by period is simply rounding down less, thus making stake >
+        // currentStake
+        //
+        // A small amount of this error is tolerated and corrected for,
+        // however any greater amount should be considered a breach in expected
+        // behaviour.
+
+        // Assuming a small margin of error, this was marginOfErr := sdk.SmallestDec().MulInt64(3)
+        let margin_of_err = Uint128::from(3u128);
 
         ensure!(
             stake <= current_stake + margin_of_err,
@@ -83,6 +121,33 @@ fn calculate_delegation_rewards_between(
     // TODO: Translate logic from Go to Rust to implement the logic to calculate rewards between periods
     // This is a placeholder implementation
     Ok(Uint128::new(100))
+
+    // TODO: Just Go code for reference
+    // // calculate the rewards accrued by a delegation between two periods
+    // func (k Keeper) calculateDelegationRewardsBetween(ctx sdk.Context, val stakingtypes.ValidatorI,
+    // 	startingPeriod, endingPeriod uint64, stake sdk.Dec,
+    // ) (rewards sdk.DecCoins) {
+    // 	// sanity check
+    // 	if startingPeriod > endingPeriod {
+    // 		panic("startingPeriod cannot be greater than endingPeriod")
+    // 	}
+    //
+    // 	// sanity check
+    // 	if stake.IsNegative() {
+    // 		panic("stake should not be negative")
+    // 	}
+    //
+    // 	// return staking * (ending - starting)
+    // 	starting := k.GetValidatorHistoricalRewards(ctx, val.GetOperator(), startingPeriod)
+    // 	ending := k.GetValidatorHistoricalRewards(ctx, val.GetOperator(), endingPeriod)
+    // 	difference := ending.CumulativeRewardRatio.Sub(starting.CumulativeRewardRatio)
+    // 	if difference.IsAnyNegative() {
+    // 		panic("negative rewards should not be possible")
+    // 	}
+    // 	// note: necessary to truncate so we don't allow withdrawing more rewards than owed
+    // 	rewards = difference.MulDecTruncate(stake)
+    // 	return
+    // }
 }
 
 fn get_tokens_from_shares(shares: Uint128) -> Uint128 {
@@ -97,14 +162,13 @@ mod tests {
     // Mocks
     const MOCK_STARTING_HEIGHT: u64 = 100;
     const MOCK_PREVIOUS_PERIOD: u64 = 10;
-    const MOCK_STARTING_STAKE: u128 = 1000; // Assuming stake is an integer value
+    const MOCK_STARTING_STAKE: u128 = 1000; // Mocked starting stake of the delegator
     const MOCK_CURRENT_BLOCK_HEIGHT: u64 = 200;
-    const MOCK_CURRENT_STAKE: u128 = 900; // Assuming current stake after all calculations
-    const MOCK_CURRENT_SHARES: u128 = 1000; // Mocked shares of the delegator
+    const MOCK_CURRENT_SHARES: u128 = 1000; // Mocked current shares of the delegator
 
     #[test]
     fn test_calculate_delegation_rewards_ok() {
-        // Arrange: setup initial conditions and inputs
+        // Test variables from mocks
         let starting_height = MOCK_STARTING_HEIGHT;
         let previous_period = MOCK_PREVIOUS_PERIOD;
         let starting_stake = Uint128::from(MOCK_STARTING_STAKE);
@@ -132,14 +196,16 @@ mod tests {
         assert_eq!(result, Uint128::new(300)); // Adjust this value based on expected rewards calculation
     }
 
+    // TODO: Tests for calculate_delegation_rewards_between
+
     #[test]
     fn test_calculate_delegation_rewards_ko() {
-        // Arrange: setup initial conditions and inputs that cause panic
+        // Test variables from mocks
         let starting_height = MOCK_STARTING_HEIGHT;
         let previous_period = MOCK_PREVIOUS_PERIOD;
         let starting_stake = Uint128::from(1500u128); // This should cause the panic
         let ending_height = MOCK_CURRENT_BLOCK_HEIGHT;
-        let current_shares = Uint128::from(MOCK_CURRENT_STAKE);
+        let current_shares = Uint128::from(MOCK_CURRENT_SHARES);
 
         // Mocking slash events
         let slash_events: &[(u64, Decimal)] = &[

@@ -1,8 +1,8 @@
 <template>
     <div class="balance-component">
-      <h4>Active Balance</h4>
-      <p>{{ balance }} NTRN</p>
-      <button @click="addBalance">Add Balance</button>
+      <p><b>Active Balance </b>{{ balance }} NTRN</p>
+      <button @click="addBalance">Add</button>
+      
     </div>
   </template>
   
@@ -10,7 +10,6 @@
   export default {
     name: 'ToppedUpBalanceComponent',
     props: {
-      title: String,
       balance: Number
     },
     methods: {

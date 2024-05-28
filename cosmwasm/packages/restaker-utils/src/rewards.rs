@@ -218,7 +218,9 @@ mod tests {
 
     use super::*;
 
-    const MOCK_CURRENT_SHARES: u128 = 1000; // Mocked current shares of the delegator (single user which we are computing rewards for)
+    // We assign 500 tokens + 500 shares to the user, and we mock 500 tokens/shares more to simulate another delegator.
+    const MOCK_CURRENT_TOKENS: u128 = 500; // Mocked current shares of the delegator (single user which we are computing rewards for)
+    const MOCK_CURRENT_SHARES: u128 = 500; // Mocked current shares of the delegator (single user which we are computing rewards for)
     const MOCK_VALIDATOR_SHARES: u128 = 1000; // Mocked current shares of the delegators (all of them combined)
     const MOCK_VALIDATOR_TOKENS: u128 = 1000; // Mocked validator tokens (this is how in the x/delegation_test.go)
 
@@ -229,23 +231,24 @@ mod tests {
         // Test variables from mocks
         let starting_info = DelegatorStartingInfo {
             previous_period: 1,
-            stake: "1000".to_string(),
+            stake: MOCK_CURRENT_TOKENS.to_string(),
             height: 1,
         }; // Mocked starting stake of the delegator
         let current_shares = Decimal::new(Uint128::new(MOCK_CURRENT_SHARES));
         let delegator_shares = Decimal::new(Uint128::new(MOCK_VALIDATOR_SHARES));
         let validator_tokens = Uint128::new(MOCK_VALIDATOR_TOKENS);
+        // Mock the validator historical rewards to generate some rewards for the delegator
         let starting_val_hist_rewards = ValidatorHistoricalRewards {
             cumulative_reward_ratio: vec![Coin {
                 denom: "untrn".to_string(),
-                amount: Uint128::new(1000),
+                amount: Uint128::new(0),
             }],
             reference_count: 2,
         };
         let ending_val_hist_rewards = ValidatorHistoricalRewards {
             cumulative_reward_ratio: vec![Coin {
                 denom: "untrn".to_string(),
-                amount: Uint128::new(2000),
+                amount: Uint128::new(1000),
             }],
             reference_count: 2,
         };
@@ -268,6 +271,7 @@ mod tests {
         )
         .unwrap();
 
+        // We assert the user has now the same 500 tokens from before, plus 500 tokens from the rewards (50% of the total rewards that was 1000 tokens)
         assert_eq!(
             result,
             vec![Coin {
@@ -286,7 +290,7 @@ mod tests {
     //     // Test variables from mocks
     //     let starting_info = DelegatorStartingInfo {
     //         previous_period: 1,
-    //         stake: "1000".to_string(),
+    //         stake: MOCK_CURRENT_TOKENS.to_string(),
     //         height: 1,
     //     }; // Mocked starting stake of the delegator
     //     let current_shares = Decimal::new(Uint128::new(MOCK_CURRENT_SHARES));

@@ -30,15 +30,30 @@ sleep 3
 CONTRACT_ADDR=$(neutrond q tx "$INSTANTIATE_HASH" --output json | jq -r '.events[] | select(.type=="instantiate") | .attributes[] | select(.key=="_contract_address") | .value')
 echo "Instantiated contract with address: $CONTRACT_ADDR"
 
-neutrond tx wasm execute "$CONTRACT_ADDR" "{\"add_supported_chain\": {\"chain_id\": \"$COSMOS_HUB_CHAIN_ID\", \"connection_id\": \"$CONNECTION_ID\"}}" --amount 1000000untrn --from $NEUTRON_ADMIN_KEY --gas-prices 0.025untrn --gas auto --gas-adjustment 1.75 --chain-id $NEUTRON_CHAIN_ID --yes --keyring-backend test --output json
+ADD_CHAIN_HASH=$(neutrond tx wasm execute "$CONTRACT_ADDR" "{\"add_supported_chain\": {\"chain_id\": \"$COSMOS_HUB_CHAIN_ID\", \"connection_id\": \"$CONNECTION_ID\"}}" --amount 1000000untrn --from $NEUTRON_ADMIN_KEY --gas-prices 0.025untrn --gas auto --gas-adjustment 1.75 --chain-id $NEUTRON_CHAIN_ID --yes --keyring-backend test --output json  | jq -r ".txhash")
 sleep 3
-neutrond q wasm contract-state smart neutron1zl6tmh5s4kf0h7k4chkxu2g5x0y5xlw7ylrd7mh7zu28a9jmln3qnstm8w '{"supported_chains": {}}'
+ADD_CHAIN_RESULT=$(neutrond q tx "$ADD_CHAIN_HASH" --output json | jq -r ".code")
+if [ "$ADD_CHAIN_RESULT" != "0" ]; then
+  echo "Error adding supported chain: $ADD_CHAIN_RESULT (tx: $ADD_CHAIN_HASH)"
+  exit 1
+fi
 
-gaiad tx staking delegate $COSMOS_HUB_VAL 100000000000uatom --from $COSMOS_HUB_USER_KEY --keyring-backend test --gas-prices 0.025uatom --gas auto --gas-adjustment 1.75 --chain-id $COSMOS_HUB_CHAIN_ID --yes --node tcp://localhost:16657
-sleep 3
 
-neutrond tx wasm execute "$CONTRACT_ADDR" "{\"register_user\": {\"registrations\": [{\"chain_id\": \"$COSMOS_HUB_CHAIN_ID\", \"address\": \"$COSMOS_HUB_USER_ADDRESS\"}]}}" --from $NEUTRON_USER_KEY --gas-prices 0.025untrn --gas auto --gas-adjustment 1.75 --chain-id $NEUTRON_CHAIN_ID --yes --keyring-backend test --output json
+DELEGATE_HASH=$(gaiad tx staking delegate $COSMOS_HUB_VAL 100000000000uatom --from $COSMOS_HUB_USER_KEY --keyring-backend test --gas-prices 0.025uatom --gas auto --gas-adjustment 1.75 --chain-id $COSMOS_HUB_CHAIN_ID --yes --node tcp://localhost:16657 --output json | jq -r ".txhash")
 sleep 3
+DELEGATE_RESULT=$(gaiad q tx "$DELEGATE_HASH" --node tcp://localhost:16657 --output json | jq -r ".code")
+if [ "$DELEGATE_RESULT" != "0" ]; then
+  echo "Error delegating to validator: $DELEGATE_RESULT (tx: $DELEGATE_HASH)"
+  exit 1
+fi
+
+REGISTER_USER_HASH=$(neutrond tx wasm execute "$CONTRACT_ADDR" "{\"register_user\": {\"registrations\": [{\"chain_id\": \"$COSMOS_HUB_CHAIN_ID\", \"address\": \"$COSMOS_HUB_USER_ADDRESS\", \"validators\": [\"$COSMOS_HUB_VAL\"]}]}}" --amount 1000000untrn --from $NEUTRON_USER_KEY --gas-prices 0.025untrn --gas auto --gas-adjustment 1.75 --chain-id $NEUTRON_CHAIN_ID --yes --keyring-backend test --output json   | jq -r ".txhash")
+sleep 3
+REGISTER_USER_RESULT=$(neutrond q tx "$REGISTER_USER_HASH" --output json | jq -r ".code")
+if [ "$REGISTER_USER_RESULT" != "0" ]; then
+  echo "Error registering user: $REGISTER_USER_RESULT (tx: $REGISTER_USER_HASH)"
+  exit 1
+fi
 
 echo ""
 echo "Success!"
@@ -48,3 +63,5 @@ echo "To check supported chains and ica_address, run:"
 echo "neutrond q wasm contract-state smart $CONTRACT_ADDR '{\"supported_chains\": {}}'"
 echo "To check validator delegation, run:"
 echo "gaiad q staking delegations $COSMOS_HUB_USER_ADDRESS --node tcp://localhost:16657"
+echo "To check user registration, run:"
+echo "neutrond q wasm contract-state smart $CONTRACT_ADDR '{\"user_registrations\": {\"address\": {\"$NEUTRON_USER_ADDRESS\": {}}}}'"

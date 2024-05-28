@@ -21,3 +21,4 @@ Later/if time:
 - [ ] Implement msg to remove a supported chain
 - [ ] Implement msg to update config
 - [ ] Find a way to support neutron (local chain) auto compounding
+- [ ] Handle ICQs that have expired (how to fill them up (?) and let the user know when they need to do something)

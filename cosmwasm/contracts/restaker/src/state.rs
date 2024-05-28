@@ -1,6 +1,7 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Addr;
-use cw_storage_plus::{Item, Map};
+use cw_storage_macro::index_list;
+use cw_storage_plus::{IndexedMap, Item, Map, MultiIndex};
 
 #[cw_serde]
 pub struct Config {
@@ -22,6 +23,7 @@ pub struct UserChainRegistration {
     pub local_address: Addr,
     pub chain_id: String,
     pub remote_address: String, // The address on the other chain
+    pub validators: Vec<String>,
 }
 
 pub const CONFIG: Item<Config> = Item::new("config");
@@ -30,5 +32,15 @@ pub const CONFIG: Item<Config> = Item::new("config");
 pub const SUPPORTED_CHAINS: Map<String, Chain> = Map::new("supported_chains");
 pub const ICA_PORT_ID_TO_CHAIN_ID: Map<String, String> = Map::new("ica_port_id_to_chain_id");
 
-// (local_address, chain_id, remote_address) -> UserChainRegistration (e.g. neutron1.., cosmos-hub-1, cosmos1... -> UserChainRegistration)
-pub const USER_CHAIN_REGISTRATIONS: Map<(Addr, String, String), UserChainRegistration> = Map::new("user_chain_registrations");
+#[index_list(UserChainRegistration)]
+pub struct UserChainRegistrationIndexes<'a> {
+    pub local_address: MultiIndex<'a, Addr, UserChainRegistration, (Addr, String, String)>,
+}
+
+pub fn user_chain_registrations<'a>() -> IndexedMap<'a, (Addr, String, String), UserChainRegistration, UserChainRegistrationIndexes<'a>> {
+    let indexes = UserChainRegistrationIndexes {
+        local_address: MultiIndex::new(|_pk: &[u8], u: &UserChainRegistration| u.local_address.clone(), "user_chain_registrations", "user_chain_registrations__local_address"),
+    };
+
+    IndexedMap::new("user_chain_registrations", indexes)
+}

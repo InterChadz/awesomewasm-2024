@@ -1,9 +1,6 @@
-use cosmwasm_std::{
-    entry_point, DepsMut, Env, MessageInfo, Response, Empty,
-};
 use crate::error::ContractError;
 use crate::msg::InstantiateMsg;
-
+use cosmwasm_std::{entry_point, DepsMut, Empty, Env, MessageInfo, Response};
 
 #[entry_point]
 pub fn instantiate(

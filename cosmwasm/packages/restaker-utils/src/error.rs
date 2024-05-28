@@ -2,10 +2,7 @@ use cosmwasm_std::StdError;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
-pub enum ContractError {
+pub enum ArkiteError {
     #[error("{0}")]
     Std(#[from] StdError),
-
-    #[error("unauthorized")]
-    Unauthorized {},
 }

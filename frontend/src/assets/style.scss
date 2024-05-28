@@ -1,0 +1,27 @@
+@import "vue-toastification/src/scss/_variables";
+@import "vue-toastification/src/scss/_toastContainer";
+@import "vue-toastification/src/scss/_toast";
+@import "vue-toastification/src/scss/_closeButton";
+@import "vue-toastification/src/scss/_progressBar";
+@import "vue-toastification/src/scss/_icon";
+@import "vue-toastification/src/scss/animations/_bounce";
+
+html {
+  overflow-x: hidden;
+
+  body {
+    overflow-x: hidden;
+
+    * {
+      font-family: 'Roboto', sans-serif;
+    }
+
+    h1, h2, h3, h4, h5, h6, button {
+      font-family: 'Roboto', sans-serif;
+    }
+  }
+}
+
+p:last-child, ul:last-child {
+  margin-bottom: 0;
+}

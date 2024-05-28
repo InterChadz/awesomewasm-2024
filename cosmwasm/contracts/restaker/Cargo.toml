@@ -10,7 +10,9 @@ crate-type = ["cdylib", "rlib"]
 cosmwasm-std = { workspace = true }
 cosmwasm-schema = { workspace = true }
 cw-storage-plus = { workspace = true }
+neutron-sdk = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
+serde-json-wasm = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]

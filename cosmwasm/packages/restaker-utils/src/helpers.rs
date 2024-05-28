@@ -496,14 +496,17 @@ mod tests {
     #[test]
     fn test_tokens_from_shares() {
         // Test case 1: Normal case
+        // 10 shares out of 50 total shares, with 100 validator tokens
+        // should result in 10 * 100 / 50 = 20.
         let shares = Decimal::from_str("10.0").unwrap();
         let validator_tokens = Uint128::from(100u128);
-        let delegator_shares = Decimal::from_str("50.0").unwrap();
+        let delegator_shares = Decimal::from_str("50.0").unwrap(); // this includes also the 10.0 shares from the user
         let expected = Decimal::from_str("20.0").unwrap();
         let result = tokens_from_shares(shares, validator_tokens, delegator_shares);
         assert_eq!(result, expected);
 
         // Test case 2: Zero shares
+        // Zero shares should always result in zero tokens
         let shares = Decimal::from_str("0.0").unwrap();
         let validator_tokens = Uint128::from(100u128);
         let delegator_shares = Decimal::from_str("50.0").unwrap();
@@ -512,6 +515,8 @@ mod tests {
         assert_eq!(result, expected);
 
         // Test case 3: Zero validator tokens
+        // 10 shares out of 50 total shares, with 0 validator tokens
+        // should result in 0 tokens even if it is kinda impossible to happen.
         let shares = Decimal::from_str("10.0").unwrap();
         let validator_tokens = Uint128::from(0u128);
         let delegator_shares = Decimal::from_str("50.0").unwrap();
@@ -520,12 +525,12 @@ mod tests {
         assert_eq!(result, expected);
 
         // Test case 4: Zero delegator shares
+        // 10 shares out of 0 total shares, with 100 validator tokens
+        // should handle the division by zero safely even if it is kinda impossible to happen.
         let shares = Decimal::from_str("10.0").unwrap();
         let validator_tokens = Uint128::from(100u128);
         let delegator_shares = Decimal::from_str("0.0").unwrap();
         let result = tokens_from_shares(shares, validator_tokens, delegator_shares);
-        // This should handle the division by zero safely
-        // Assuming it returns zero in case of division by zero
         let expected = Decimal::from_str("0.0").unwrap();
         assert_eq!(result, expected);
     }

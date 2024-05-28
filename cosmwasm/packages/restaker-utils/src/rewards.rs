@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use cosmwasm_std::{ensure, Coin, Decimal, Env, StdError, StdResult, Uint128};
+use cosmwasm_std::{Coin, Decimal, Env, StdError, StdResult, Uint128};
 
 use crate::types::{DelegatorStartingInfo, ValidatorHistoricalRewards};
 
@@ -96,14 +96,14 @@ pub fn calculate_delegation_rewards(
         // Assuming a small margin of error, this was marginOfErr := sdk.SmallestDec().MulInt64(3)
         let margin_of_err = Decimal::new(Uint128::new(3u128));
 
-        ensure!(
-            stake_decimal <= current_stake + margin_of_err,
-            StdError::generic_err(format!(
+        if stake_decimal <= current_stake + margin_of_err {
+            stake_decimal = current_stake;
+        } else {
+            return Err(StdError::generic_err(format!(
                 "Calculated final stake greater than current stake. Final stake: {}, Current stake: {}",
-                stake, current_stake
-            ))
-        );
-        stake_decimal = current_stake;
+                stake_decimal, current_stake
+            )));
+        }
     }
 
     // Calculate rewards for the final period
@@ -218,10 +218,9 @@ mod tests {
 
     use super::*;
 
-    const MOCK_CURRENT_SHARES: u128 = 500; // Mocked current shares of the delegator (single user which we are computing rewards for)
-
+    const MOCK_CURRENT_SHARES: u128 = 1000; // Mocked current shares of the delegator (single user which we are computing rewards for)
     const MOCK_VALIDATOR_SHARES: u128 = 1000; // Mocked current shares of the delegators (all of them combined)
-    const MOCK_VALIDATOR_TOKENS: u128 = 1000; // Mocked validator tokens
+    const MOCK_VALIDATOR_TOKENS: u128 = 1000; // Mocked validator tokens (this is how in the x/delegation_test.go)
 
     #[test]
     fn test_calculate_rewards_basic() {
@@ -241,14 +240,14 @@ mod tests {
                 denom: "untrn".to_string(),
                 amount: Uint128::new(1000),
             }],
-            reference_count: 1,
+            reference_count: 2,
         };
         let ending_val_hist_rewards = ValidatorHistoricalRewards {
             cumulative_reward_ratio: vec![Coin {
                 denom: "untrn".to_string(),
                 amount: Uint128::new(2000),
             }],
-            reference_count: 1,
+            reference_count: 2,
         };
 
         // // Mocking slash events
@@ -269,12 +268,11 @@ mod tests {
         )
         .unwrap();
 
-        // Assert: check the results
         assert_eq!(
             result,
             vec![Coin {
                 denom: "untrn".to_string(),
-                amount: Uint128::new(300)
+                amount: Uint128::new(1000)
             }]
         ); // Adjust this value based on expected rewards calculation
     }
@@ -299,14 +297,14 @@ mod tests {
     //             denom: "untrn".to_string(),
     //             amount: Uint128::new(1000),
     //         }],
-    //         reference_count: 1,
+    //         reference_count: 2,
     //     };
     //     let ending_val_hist_rewards = ValidatorHistoricalRewards {
     //         cumulative_reward_ratio: vec![Coin {
     //             denom: "untrn".to_string(),
     //             amount: Uint128::new(2000),
     //         }],
-    //         reference_count: 1,
+    //         reference_count: 2,
     //     };
     //
     //     // // Mocking slash events

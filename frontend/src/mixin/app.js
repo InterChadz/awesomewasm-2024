@@ -24,8 +24,8 @@ const mxApp = {
     async fetchOnce() {
       await this.initUser();
 
-      await this.fetchAppConfig();
-      await this.fetchAppState();
+      // await this.fetchAppConfig();
+      // await this.fetchAppState();
 
       // Init signer and querier
       if (this.userAddress) {

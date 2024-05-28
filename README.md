@@ -21,6 +21,13 @@
 | ------------------------------------------ | ------------------------------------------ |
 | ![Screenshot](screenshots/placeholder.png) | ![Screenshot](screenshots/placeholder.png) |
 
+## Project setup
+
+For detailed instructions to start the dApp, see the respective readme files:
+
+- [Frontend installation instructions](https://github.com/InterChadz/awesomewasm-2024/blob/main/frontend/README-Vue.md)
+- [Contracts installation instructions](https://github.com/InterChadz/awesomewasm-2024/blob/main/cosmwasm/README.md)
+
 ## Hackathon tracks
 
 ### Neutron Track - Free-form project track

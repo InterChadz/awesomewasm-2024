@@ -5,10 +5,11 @@
         © {{ new Date().getFullYear() }} {{title}}
       </div>
 
-      <div class="col-md-4 text-center d-none d-md-block">
+      <!-- <div class="col-md-4 text-center d-none d-md-block">
         <img class="logo" src="/favicon.ico" :alt="title">
-      </div>
+      </div> -->
 
+      <p>&copy; 2024 InterChadz. All rights reserved.</p>
       <div class="col-md-4">
         <ul class="nav list-unstyled d-flex justify-content-center justify-content-md-end">
           <li class="ms-3">

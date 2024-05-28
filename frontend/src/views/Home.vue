@@ -25,7 +25,7 @@
           <div class="card bg-secondary border-0 rounded-3 p-3">
             <h2>One time registration</h2>
             <p>
-              Users on InterChadz only have to register their wallet once to access all the features on the platform.
+              Users on InterChadz only have to register their wallet once to benefit from continuous auto-compounding on the platform.
             </p>
           </div>
         </div>

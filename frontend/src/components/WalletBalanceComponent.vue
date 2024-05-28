@@ -1,7 +1,6 @@
 <template>
     <div class="balance-component">
-      <h4>{{ title }}</h4>
-      <p>{{ balance }} NTRN</p>
+      <p><b>Wallet Balance: </b>{{ balance }} NTRN</p>
     </div>
   </template>
   
@@ -9,7 +8,6 @@
   export default {
     name: 'WalletBalanceComponent',
     props: {
-      title: String,
       balance: Number
     }
   };

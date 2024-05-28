@@ -1,12 +1,12 @@
 <template>
   <div class="staking-page">
     <header class="header">
-      <div class="balances d-flex justify-content-between align-items-stretch">
+      <div class="balances d-flex justify-content-between align-items-center">
         <div class="col-md-6">
-          <ToppedUpBalanceComponent title="Topped Up Balance" :balance="toppedUpBalance" />
+          <ToppedUpBalanceComponent :balance="toppedUpBalance" />
         </div>
         <div class="col-md-6 d-flex justify-content-end">
-          <WalletBalanceComponent title="Wallet Balance" :balance="walletBalance" />
+          <WalletBalanceComponent :balance="walletBalance" />
         </div>
       </div>
     </header>
@@ -90,15 +90,17 @@ export default {
   .balances {
     display: flex;
     justify-content: space-between;
-    align-items: stretch;
+    align-items: center;
 
-    .col-md-6 {
+    .col-md-6:first-child {
       display: flex;
       align-items: center;
       justify-content: flex-start;
     }
 
     .col-md-6:last-child {
+      display: flex;
+      align-items: center;
       justify-content: flex-end;
     }
   }

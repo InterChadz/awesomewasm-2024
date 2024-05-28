@@ -1,15 +1,15 @@
 <template>
   <div id="app-body" class="d-flex flex-column">
-    <LoadingComponent v-if="isBusy"/>
+    <LoadingComponent v-if="isBusy" />
 
     <template v-else>
-      <NavbarComponent/>
+      <NavbarComponent />
 
       <div class="main-section flex-grow-1">
-        <router-view/>
+        <router-view />
       </div>
 
-      <FooterComponent/>
+      <FooterComponent />
     </template>
   </div>
 </template>
@@ -19,7 +19,7 @@ import NavbarComponent from "@/components/Layout/NavbarComponent.vue";
 import LoadingComponent from "@/components/Common/LoadingComponent.vue";
 import FooterComponent from "@/components/Layout/FooterComponent.vue";
 import mxApp from "@/mixin/app";
-import {mapGetters} from "vuex";
+import { mapGetters } from "vuex";
 import mxChain from "@/mixin/chain";
 
 export default {
@@ -27,22 +27,22 @@ export default {
 
   mixins: [mxApp, mxChain],
 
-  components: {FooterComponent, LoadingComponent, NavbarComponent},
+  components: { FooterComponent, LoadingComponent, NavbarComponent },
 
   computed: {
-    ...mapGetters(['appConfig'])
+    ...mapGetters(["appConfig"]),
   },
 
   data() {
     return {
       isBusy: true,
-      intervalTimeout: Number(process.env.VUE_APP_INTERVAL_TIMEOUT)
-    }
+      intervalTimeout: Number(process.env.VUE_APP_INTERVAL_TIMEOUT),
+    };
   },
 
   async created() {
     try {
-      await this.suggestChain()
+      await this.suggestChain();
     } catch (e) {
       //console.error(e)
     }
@@ -52,8 +52,8 @@ export default {
   },
 
   unmounted() {
-    if (this.intervalId) clearInterval(this.intervalId)
-  }
+    if (this.intervalId) clearInterval(this.intervalId);
+  },
 };
 </script>
 

@@ -40,11 +40,11 @@ For detailed instructions to start the dApp, see the respective readme files:
 
 ## Links
 
-- [Twitter/X profile](https://x.com/TheInterChadz)
-- [Vercel deployment]()
+- [Vercel deployment](https://wasm-theta.vercel.app/)
 - [Presentation slides]()
 - [Demo video]()
 - [Github repo](https://github.com/InterChadz/awesomewasm-2024)
+- [Twitter/X profile](https://x.com/TheInterChadz)
 
 ## Team
 

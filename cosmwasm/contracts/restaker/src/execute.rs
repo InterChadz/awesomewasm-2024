@@ -3,13 +3,14 @@ use neutron_sdk::bindings::msg::NeutronMsg;
 use neutron_sdk::interchain_txs::helpers::get_port_id;
 
 use crate::error::ContractError;
-use crate::msg::ExecuteMsg;
-use crate::state::{Chain, CONFIG, ICA_PORT_ID_TO_CHAIN_ID, SUPPORTED_CHAINS};
+use crate::msg::{ExecuteMsg, UserChainRegistrationInput};
+use crate::state::{Chain, CONFIG, ICA_PORT_ID_TO_CHAIN_ID, SUPPORTED_CHAINS, USER_CHAIN_REGISTRATIONS, UserChainRegistration};
 
 #[entry_point]
 pub fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> Result<Response<NeutronMsg>, ContractError> {
     match msg {
-        ExecuteMsg::AddSupportedChain { chain_id, connection_id } => add_supported_chain(deps, env,  info, chain_id, connection_id),
+        ExecuteMsg::AddSupportedChain { chain_id, connection_id } => add_supported_chain(deps, env, info, chain_id, connection_id),
+        ExecuteMsg::RegisterUser { registrations } => register_user(deps, info, registrations),
     }
 }
 
@@ -30,7 +31,7 @@ pub fn add_supported_chain(
     }
 
     if info.funds.len() != 1 || info.funds[0].denom != "untrn" || info.funds[0].amount.u128() != config.neutron_register_ica_fee {
-        return Err(ContractError::NotEnoughFunds { 
+        return Err(ContractError::NotEnoughFunds {
             required_amount: config.neutron_register_ica_fee.into(),
             actual_amount: info.funds[0].amount.u128(),
         });
@@ -62,11 +63,43 @@ pub fn add_supported_chain(
     )
 }
 
+pub fn register_user(
+    deps: DepsMut,
+    info: MessageInfo,
+    registrations: Vec<UserChainRegistrationInput>,
+) -> Result<Response<NeutronMsg>, ContractError> {
+    for registration in registrations {
+        let chain = SUPPORTED_CHAINS.load(deps.storage, registration.clone().chain_id)?;
+
+        let chain_id = registration.clone().chain_id;
+        let remote_address = registration.clone().address;
+
+        if USER_CHAIN_REGISTRATIONS.may_load(deps.storage, (info.clone().sender, chain_id.clone(), remote_address.clone())).unwrap().is_some() {
+            return Err(ContractError::ChainAlreadyRegisteredForUser {
+                remote_address: remote_address.clone(),
+                chain_id: chain_id.clone(),
+                address: info.clone().sender.to_string(),
+            });
+        }
+
+        USER_CHAIN_REGISTRATIONS.save(deps.storage, (info.clone().sender, chain_id.clone(), remote_address.clone()), &UserChainRegistration {
+            chain_id,
+            local_address: info.clone().sender,
+            remote_address,
+        })?;
+
+        // TODO: Set up the ICQ stuff
+    }
+
+    Ok(Response::new())
+}
+
 #[cfg(test)]
 mod tests {
     mod test_add_supported_chain {
         use cosmwasm_std::coins;
         use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+
         use crate::execute::execute;
         use crate::instantiate::instantiate;
         use crate::msg::{ExecuteMsg, InstantiateMsg};
@@ -77,7 +110,7 @@ mod tests {
             let mut deps = mock_dependencies();
             let info = mock_info("creator", &coins(1000000, "untrn"));
 
-            instantiate(deps.as_mut(), mock_env(), info.clone(), InstantiateMsg{ 
+            instantiate(deps.as_mut(), mock_env(), info.clone(), InstantiateMsg {
                 admin: info.sender.to_string(),
                 neutron_register_ica_fee: 1000000,
             }).unwrap();
@@ -98,6 +131,55 @@ mod tests {
             let chain = chains.get(0).unwrap();
             assert_eq!(chain.0, "chain_id");
             assert_eq!(chain.1.connection_id, "connection_id");
+        }
+    }
+
+    mod test_register_user {
+        use cosmwasm_std::coins;
+        use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+
+        use crate::execute::execute;
+        use crate::instantiate::instantiate;
+        use crate::msg::{ExecuteMsg, InstantiateMsg};
+        use crate::state::USER_CHAIN_REGISTRATIONS;
+
+        #[test]
+        fn test_register_user() {
+            let mut deps = mock_dependencies();
+            let creator_info = mock_info("creator", &coins(1000000, "untrn"));
+
+            instantiate(deps.as_mut(), mock_env(), creator_info.clone(), InstantiateMsg {
+                admin: creator_info.sender.to_string(),
+                neutron_register_ica_fee: 1000000,
+            }).unwrap();
+
+            let add_supported_chain_msg = ExecuteMsg::AddSupportedChain {
+                chain_id: "chain_id".to_string(),
+                connection_id: "connection_id".to_string(),
+            };
+            execute(deps.as_mut(), mock_env(), creator_info.clone(), add_supported_chain_msg).unwrap();
+
+            let info = mock_info("user", &coins(1000000, "untrn"));
+            let register_user_msg = ExecuteMsg::RegisterUser {
+                registrations: vec![
+                    crate::msg::UserChainRegistrationInput {
+                        chain_id: "chain_id".to_string(),
+                        address: "remote_test_address".to_string(),
+                    }
+                ]
+            };
+            let res = execute(deps.as_mut(), mock_env(), info.clone(), register_user_msg).unwrap();
+            assert_eq!(0, res.messages.len());
+
+            let registrations = USER_CHAIN_REGISTRATIONS.range(deps.as_ref().storage, None, None, cosmwasm_std::Order::Ascending)
+                .map(|item| item.unwrap())
+                .collect::<Vec<_>>();
+            assert_eq!(registrations.len(), 1);
+
+            let registration = registrations.get(0).unwrap();
+            assert_eq!(registration.0, (info.clone().sender, "chain_id".to_string(), "remote_test_address".to_string()));
+            assert_eq!(registration.1.local_address, info.sender);
+            assert_eq!(registration.1.remote_address, "remote_test_address");
         }
     }
 }

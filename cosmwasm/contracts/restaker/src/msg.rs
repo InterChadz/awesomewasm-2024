@@ -12,6 +12,9 @@ pub enum ExecuteMsg {
         chain_id: String,
         connection_id: String,
     },
+    RegisterUser {
+        registrations: Vec<UserChainRegistrationInput>,
+    }
 }
 
 #[cw_serde]
@@ -22,6 +25,12 @@ pub enum QueryMsg {
         limit: Option<u64>,
         start_after: Option<String>,
     },
+}
+
+#[cw_serde]
+pub struct UserChainRegistrationInput {
+    pub chain_id: String,
+    pub address: String,
 }
 
 #[cw_serde]

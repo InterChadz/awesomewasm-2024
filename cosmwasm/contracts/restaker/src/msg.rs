@@ -12,6 +12,9 @@ pub enum ExecuteMsg {
         chain_id: String,
         connection_id: String,
     },
+    RegisterUser {
+        registrations: Vec<UserChainRegistrationInput>,
+    }
 }
 
 #[cw_serde]
@@ -22,6 +25,19 @@ pub enum QueryMsg {
         limit: Option<u64>,
         start_after: Option<String>,
     },
+    #[returns(GetUserRegistrationsResponse)]
+    UserRegistrations {
+        address: String,
+        limit: Option<u64>,
+        start_after: Option<String>,
+    }
+}
+
+#[cw_serde]
+pub struct UserChainRegistrationInput {
+    pub chain_id: String,
+    pub address: String,
+    pub validators: Vec<String>,
 }
 
 #[cw_serde]
@@ -34,4 +50,16 @@ pub struct ChainResponse {
 #[cw_serde]
 pub struct SupportedChainsResponse {
     pub chains: Vec<ChainResponse>,
+}
+
+#[cw_serde]
+pub struct UserChainResponse {
+    pub chain_id: String,
+    pub address: String,
+    pub validators: Vec<String>,
+}
+
+#[cw_serde]
+pub struct GetUserRegistrationsResponse {
+    pub user_chain_registrations: Vec<UserChainResponse>,
 }

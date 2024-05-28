@@ -1,15 +1,21 @@
 use cosmwasm_std::{coins, DepsMut, entry_point, Env, MessageInfo, Response};
+use interchain_queries::v047::register_queries::new_register_delegator_delegations_query_msg;
 use neutron_sdk::bindings::msg::NeutronMsg;
+use neutron_sdk::interchain_queries;
 use neutron_sdk::interchain_txs::helpers::get_port_id;
 
 use crate::error::ContractError;
-use crate::msg::ExecuteMsg;
-use crate::state::{Chain, CONFIG, ICA_PORT_ID_TO_CHAIN_ID, SUPPORTED_CHAINS};
+use crate::msg::{ExecuteMsg, UserChainRegistrationInput};
+use crate::state::{Chain, CONFIG, ICA_PORT_ID_TO_CHAIN_ID, SUPPORTED_CHAINS, user_chain_registrations, UserChainRegistration};
+
+//const STAKING_STORE_KEY: &str = "staking";
+//const STAKING_DELEGATION_KEY_PREFIX: u8 = 0x31;
 
 #[entry_point]
 pub fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> Result<Response<NeutronMsg>, ContractError> {
     match msg {
-        ExecuteMsg::AddSupportedChain { chain_id, connection_id } => add_supported_chain(deps, env,  info, chain_id, connection_id),
+        ExecuteMsg::AddSupportedChain { chain_id, connection_id } => add_supported_chain(deps, env, info, chain_id, connection_id),
+        ExecuteMsg::RegisterUser { registrations } => register_user(deps, info, registrations),
     }
 }
 
@@ -30,7 +36,7 @@ pub fn add_supported_chain(
     }
 
     if info.funds.len() != 1 || info.funds[0].denom != "untrn" || info.funds[0].amount.u128() != config.neutron_register_ica_fee {
-        return Err(ContractError::NotEnoughFunds { 
+        return Err(ContractError::NotEnoughFunds {
             required_amount: config.neutron_register_ica_fee.into(),
             actual_amount: info.funds[0].amount.u128(),
         });
@@ -62,11 +68,75 @@ pub fn add_supported_chain(
     )
 }
 
+pub fn register_user(
+    deps: DepsMut,
+    info: MessageInfo,
+    registrations: Vec<UserChainRegistrationInput>,
+) -> Result<Response<NeutronMsg>, ContractError> {
+    let mut icq_msgs: Vec<NeutronMsg> = Vec::new();
+    for registration in registrations {
+        let chain = SUPPORTED_CHAINS.load(deps.storage, registration.clone().chain_id)?;
+
+        let chain_id = registration.clone().chain_id;
+        let remote_address = registration.clone().address;
+
+        if user_chain_registrations().may_load(deps.storage, (info.clone().sender, chain_id.clone(), remote_address.clone())).unwrap().is_some() {
+            return Err(ContractError::ChainAlreadyRegisteredForUser {
+                remote_address: remote_address.clone(),
+                chain_id: chain_id.clone(),
+                address: info.clone().sender.to_string(),
+            });
+        }
+
+        user_chain_registrations().save(deps.storage, (info.clone().sender, chain_id.clone(), remote_address.clone()), &UserChainRegistration {
+            chain_id: chain_id.clone(),
+            local_address: info.clone().sender,
+            remote_address: remote_address.clone(),
+            validators: registration.clone().validators,
+        })?;
+
+        // ICQ stuff:
+        let icq_msg = new_register_delegator_delegations_query_msg(
+            chain.connection_id,
+            remote_address,
+            registration.validators,
+            5).unwrap();
+        icq_msgs.push(icq_msg);
+
+        /*let converted_addr_bytes = decode_and_convert(&remote_address).unwrap();
+        let delegation_key = create_delegation_key(converted_addr_bytes).unwrap();
+
+        let kv_key = KVKey {
+            path: STAKING_STORE_KEY.to_string(),
+            key: Binary(delegation_key),
+        };
+        let staking_delegation_icq_msg = NeutronMsg::register_interchain_query(
+            QueryPayload::KV(vec![kv_key]),
+            chain.connection_id,
+            5, // 🤷
+        ).unwrap();
+
+        icq_msgs.push(staking_delegation_icq_msg);*/
+    }
+
+    Ok(Response::new()
+        .add_attribute("action", "register_user")
+        .add_messages(icq_msgs))
+}
+
+/*fn create_delegation_key(delegator: AddressBytes) -> StdResult<AddressBytes> {
+    let mut key: Vec<u8> = vec![STAKING_DELEGATION_KEY_PREFIX];
+    key.extend_from_slice(delegator.as_slice());
+
+    Ok(key)
+}*/
+
 #[cfg(test)]
 mod tests {
     mod test_add_supported_chain {
         use cosmwasm_std::coins;
         use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+
         use crate::execute::execute;
         use crate::instantiate::instantiate;
         use crate::msg::{ExecuteMsg, InstantiateMsg};
@@ -77,7 +147,7 @@ mod tests {
             let mut deps = mock_dependencies();
             let info = mock_info("creator", &coins(1000000, "untrn"));
 
-            instantiate(deps.as_mut(), mock_env(), info.clone(), InstantiateMsg{ 
+            instantiate(deps.as_mut(), mock_env(), info.clone(), InstantiateMsg {
                 admin: info.sender.to_string(),
                 neutron_register_ica_fee: 1000000,
             }).unwrap();
@@ -98,6 +168,68 @@ mod tests {
             let chain = chains.get(0).unwrap();
             assert_eq!(chain.0, "chain_id");
             assert_eq!(chain.1.connection_id, "connection_id");
+        }
+    }
+
+    mod test_register_user {
+        use cosmwasm_std::{coins, Order, StdResult};
+        use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info, MockApi};
+
+        use crate::execute::execute;
+        use crate::instantiate::instantiate;
+        use crate::msg::{ExecuteMsg, InstantiateMsg};
+        use crate::state::user_chain_registrations;
+
+        #[test]
+        fn test_register_user() {
+            let mut deps = mock_dependencies();
+            let creator_info = mock_info("creator", &coins(1000000, "untrn"));
+
+            instantiate(deps.as_mut(), mock_env(), creator_info.clone(), InstantiateMsg {
+                admin: creator_info.sender.to_string(),
+                neutron_register_ica_fee: 1000000,
+            }).unwrap();
+
+            let add_supported_chain_msg = ExecuteMsg::AddSupportedChain {
+                chain_id: "chain_id".to_string(),
+                connection_id: "connection_id".to_string(),
+            };
+            execute(deps.as_mut(), mock_env(), creator_info.clone(), add_supported_chain_msg).unwrap();
+
+            let mock_api = MockApi::default().with_prefix("cosmos");
+            let remote_user_addr = mock_api.addr_make("remote_user");
+
+            let info = mock_info("local_user", &coins(1000000, "untrn"));
+            let validator1 = mock_api.addr_make("validator1");
+            let validator2 = mock_api.addr_make("validator2");
+            let register_user_msg = ExecuteMsg::RegisterUser {
+                registrations: vec![
+                    crate::msg::UserChainRegistrationInput {
+                        chain_id: "chain_id".to_string(),
+                        address: remote_user_addr.to_string(),
+                        validators: vec![validator1.clone().to_string(), validator2.clone().to_string()],
+                    }
+                ]
+            };
+            let res = execute(deps.as_mut(), mock_env(), info.clone(), register_user_msg).unwrap();
+            assert_eq!(1, res.messages.len());
+
+            let registrations = user_chain_registrations().range(deps.as_ref().storage, None, None, Order::Ascending)
+                .map(|item| item.unwrap())
+                .collect::<Vec<_>>();
+            assert_eq!(registrations.len(), 1);
+
+            let registration = registrations.get(0).unwrap();
+            assert_eq!(registration.0, (info.clone().sender, "chain_id".to_string(), remote_user_addr.to_string()));
+            assert_eq!(registration.1.local_address, info.sender);
+            assert_eq!(registration.1.remote_address, remote_user_addr);
+            assert_eq!(registration.1.validators, vec![validator1.to_string(), validator2.to_string()]);
+
+            let user_registrations_by_local_address: Vec<_> = user_chain_registrations().idx.local_address.prefix(info.sender)
+                .range(deps.as_ref().storage, None, None, Order::Ascending)
+                .collect::<StdResult<_>>().unwrap();
+            assert_eq!(user_registrations_by_local_address.len(), 1);
+            assert_eq!(user_registrations_by_local_address.get(0).unwrap().1, registration.1);
         }
     }
 }

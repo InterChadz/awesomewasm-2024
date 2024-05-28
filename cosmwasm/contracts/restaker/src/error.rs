@@ -17,4 +17,11 @@ pub enum ContractError {
         required_amount: u128,
         actual_amount: u128,
     },
+    
+    #[error("chain {chain_id} already registered for user with local {address} using remote address {remote_address}")]
+    ChainAlreadyRegisteredForUser {
+        chain_id: String,
+        address: String,
+        remote_address: String,
+    },
 }

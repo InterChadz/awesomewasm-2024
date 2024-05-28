@@ -1,7 +1,7 @@
 use cosmwasm_std::{Binary, Deps, entry_point, Env, Order, StdResult, to_json_binary};
 use cw_storage_plus::Bound;
 
-use crate::msg::{ChainResponse, GetUserRegistrationsResponse, QueryMsg, SupportedChainsResponse, UserChainResponse};
+use crate::msg::{ChainResponse, GetCalculatedRewardResponse, GetUserRegistrationsResponse, QueryMsg, SupportedChainsResponse, UserChainResponse};
 use crate::state::{Chain, SUPPORTED_CHAINS, user_chain_registrations};
 
 pub const DEFAULT_LIMIT: u64 = 30;
@@ -11,6 +11,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::SupportedChains { limit, start_after } => to_json_binary(&query_supported_chains(deps, limit, start_after)?),
         QueryMsg::UserRegistrations { address, limit, start_after } => to_json_binary(&query_user_registrations(deps, address, limit, start_after)?),
+        QueryMsg::CalculateReward { address, chain_id, remote_address } => to_json_binary(&query_calculate_reward(deps, address, chain_id, remote_address)?), 
     }
 }
 
@@ -56,6 +57,15 @@ pub fn query_user_registrations(
         .collect::<Vec<UserChainResponse>>();
     
     Ok(GetUserRegistrationsResponse { user_chain_registrations})
+}
+
+pub fn query_calculate_reward(
+    _deps: Deps,
+    _local_address: String,
+    _chain_id: String,
+    _remote_address: String,
+) -> StdResult<GetCalculatedRewardResponse> {
+    Ok(GetCalculatedRewardResponse { reward: 42 })
 }
 
 #[cfg(test)]

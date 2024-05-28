@@ -3,11 +3,27 @@ import {createRouter, createWebHistory} from "vue-router";
 const routes = [
   {
     path: "/",
-    name: "Restaker",
+    name: "InterChadz",
     meta: {
-      title: "Restaker"
+      title: "InterChadz"
     },
     component: () => import("@/views/Home"),
+  },
+  {
+    path: "/team",
+    name: "Team",
+    meta: {
+      title: "Our Team",
+    },
+    component: () => import("@/views/Team"),
+  },
+  {
+    path: "/staking",
+    name: "Staking",
+    meta: {
+      title: "Dashboard",
+    },
+    component: () => import("@/views/Staking"),
   },
   {
     path: "/:pathMatch(.*)*",

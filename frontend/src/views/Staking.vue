@@ -1,15 +1,14 @@
 <template>
   <div class="staking-page">
-    <header class="header">
-      <div class="balances d-flex justify-content-between align-items-center">
-        <div class="col-md-6">
+      <div class="balances d-flex ">
+        <div class="col-md-3 d-flex">
           <ToppedUpBalanceComponent :balance="toppedUpBalance" />
         </div>
-        <div class="col-md-6 d-flex justify-content-end">
+        <div class="col-md-6 d-flex"> </div>
+        <div class="col-md-3 d-flex ">
           <WalletBalanceComponent :balance="walletBalance" />
         </div>
       </div>
-    </header>
 
     <div class="chain-components">
       <ChainComponent
@@ -86,36 +85,4 @@ export default {
 <style lang="scss" scoped>
 @import "@/assets/style.scss";
 
-.header {
-  .balances {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    .col-md-6:first-child {
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-    }
-
-    .col-md-6:last-child {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-    }
-  }
-}
-
-.balance-component {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f5f5f5;
-  padding: 0.5rem 1rem;
-  border-radius: 10px;
-  text-align: center;
-  margin: 0.5rem;
-  min-width: 100px;
-  flex-grow: 1;
-}
 </style>

@@ -182,25 +182,41 @@ p:last-child, ul:last-child {
 
 .chain-components {
   .chain-component {
-    padding: 1rem;
-    margin: 2rem;
+    margin: 0rem 2rem 2rem 2rem;
     background-color: $secondary-color;
+
+
+  .chain-info {
+    background-color: #f5f5f5;
+    padding: 1rem;
     border-radius: 10px;
+    margin-right: 1rem;
+  }
+  }
+
+  .chain-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .badge {
+      background-color: $third-color;
+      border-radius: 10px 0px;
+      padding: 0.25rem 1rem;
+    }
   }
 }
 
 .staking-page {
-  .header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 2rem;
+  .balances {
+    margin: 0rem 2rem;
   }
 }
 
 .balance-table-component {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  // gap: 0.5rem;
 }
 
 .total-staked, .pending-rewards {
@@ -238,28 +254,8 @@ button:hover {
   background-color: #4e4e4e;
 }
 
-.chain-component {
-  margin-bottom: 2rem;
-}
 
-.chain-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
 
-.badge {
-  display: inline-block;
-  font-size: 75%;
-  font-weight: 700;
-  line-height: 1;
-  text-align: center;
-  white-space: nowrap;
-  vertical-align: baseline;
-  background-color: $third-color;
-  color: white;
-  margin-bottom: 1rem;
-}
 
 .restaking-toggle {
   display: flex;
@@ -317,12 +313,6 @@ input:checked + .slider:before {
   transform: translateX(14px);
 }
 
-.chain-info {
-  background-color: #f5f5f5;
-  padding: 1rem;
-  border-radius: 10px;
-  margin-right: 1rem;
-}
 
 .user-info {
   background-color: #f5f5f5;
@@ -336,14 +326,24 @@ input:checked + .slider:before {
   margin-top: 1rem;
 }
 
+
 .balance-component {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background-color: #f5f5f5;
-  padding: 0.5rem 1rem;
+  // padding: 0.5rem 1rem;
   border-radius: 10px;
   text-align: center;
-  margin: 0.5rem;
+  margin: 0.5rem 0rem;
   min-width: 100px;
+  flex-grow: 1;
 }
+
+.balance-component p,
+.balance-component button {
+  margin: 0.5rem;
+} 
 
 .chain-image {
   width: 24px;

@@ -1,5 +1,6 @@
 <template>
     <div class="balance-component">
+      
       <p><b>Active Balance </b>{{ balance }} NTRN</p>
       <button @click="addBalance">Add</button>
       

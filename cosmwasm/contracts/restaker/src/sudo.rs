@@ -137,6 +137,7 @@ mod tests {
                 InstantiateMsg {
                     admin: info.sender.to_string(),
                     neutron_register_ica_fee: 1000000,
+                    autocompound_threshold: 100,
                 },
             )
             .unwrap();

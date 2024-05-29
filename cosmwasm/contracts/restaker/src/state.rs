@@ -7,6 +7,7 @@ use cw_storage_plus::{IndexedMap, Item, Map, MultiIndex};
 pub struct Config {
     pub admin: Addr,
     pub neutron_register_ica_fee: u128, // Always in untrn
+    pub autocompound_threshold: u64,    // Always in blocks unit, local chain ones.
 }
 
 #[cw_serde]
@@ -28,6 +29,7 @@ pub struct UserChainRegistration {
     pub validators: Vec<String>,
     pub delegator_delegations_reply_id: u64, // This is used to set up the ICQ query id (see reply.rs)
     pub delegator_delegations_icq_id: Option<u64>, // This is they ID we use to query the ICQ, if this is set the registration is in progress
+    pub next_compound_height: u64, // this is the block when this registration can autocompounded again. height is local, not remote.
 }
 
 pub const CONFIG: Item<Config> = Item::new("config");

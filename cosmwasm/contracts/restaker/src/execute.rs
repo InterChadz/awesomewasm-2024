@@ -56,7 +56,7 @@ pub fn execute(
             denom,
             autocompound_cost,
         ),
-        ExecuteMsg::RegisterUser { registrations } => register_user(deps, info, registrations),
+        ExecuteMsg::RegisterUser { registrations } => register_user(env, deps, info, registrations),
         ExecuteMsg::TopupUserBalance {} => topup_user_balance(deps, env, info),
         ExecuteMsg::Autocompound {} => autocompound(deps, env, info),
     }
@@ -175,6 +175,7 @@ fn update_supported_chain(
 // TODO remove_supported_chain
 
 pub fn register_user(
+    env: Env,
     deps: DepsMut<NeutronQuery>,
     info: MessageInfo,
     registrations: Vec<UserChainRegistrationInput>,
@@ -210,13 +211,17 @@ pub fn register_user(
             });
         }
 
+        // Get config to calculate next_compound_height
+        let config = CONFIG.load(deps.storage)?;
+
         let user_chain_reg = UserChainRegistration {
             chain_id: chain_id.clone(),
             local_address: info.clone().sender,
             remote_address: remote_address.clone(),
             validators: registration.clone().validators,
             delegator_delegations_reply_id: next_reply_id,
-            delegator_delegations_icq_id: None, // This will be updated in the reply
+            delegator_delegations_icq_id: None,
+            next_compound_height: env.block.height + config.autocompound_threshold,
         };
         user_chain_registrations().save(
             deps.storage,
@@ -400,6 +405,7 @@ mod tests {
                 InstantiateMsg {
                     admin: info.sender.to_string(),
                     neutron_register_ica_fee: 1000000,
+                    autocompound_threshold: 100,
                 },
             )
             .unwrap();
@@ -410,6 +416,7 @@ mod tests {
                 config: crate::state::Config {
                     admin: Addr::unchecked(&new_admin),
                     neutron_register_ica_fee: new_fee,
+                    autocompound_threshold: 100,
                 },
             };
 
@@ -444,6 +451,7 @@ mod tests {
                 InstantiateMsg {
                     admin: info.sender.to_string(),
                     neutron_register_ica_fee: 1000000,
+                    autocompound_threshold: 100,
                 },
             )
             .unwrap();
@@ -497,6 +505,7 @@ mod tests {
                 InstantiateMsg {
                     admin: creator_info.sender.to_string(),
                     neutron_register_ica_fee: 1000000,
+                    autocompound_threshold: 100,
                 },
             )
             .unwrap();

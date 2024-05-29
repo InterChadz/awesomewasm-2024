@@ -6,6 +6,7 @@ use crate::state::Config;
 pub struct InstantiateMsg {
     pub admin: String,
     pub neutron_register_ica_fee: u128,
+    pub autocompound_threshold: u64,
 }
 
 #[cw_serde]

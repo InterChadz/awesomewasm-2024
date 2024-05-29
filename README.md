@@ -1,5 +1,3 @@
-# awesomewasm-2024
-
 <div align="center">
   <h1 align="center">InterChadz</h1>
   <h3>ICA restaker on Neutron</h3>
@@ -44,7 +42,7 @@ For detailed instructions to start the dApp, see the respective readme files:
 
 ### RegisterUser
 
-This function is available on the staking dashboard as a toggle. When restaking is not enabled, users can activate it by clicking the toggle. A transaction is initiated, with `chainId`, `address` and 'validators' as parameters. The chainid and address are available in the state, and the validators are queried from the chain.
+This function is available on the staking dashboard as a toggle. When restaking is not enabled, users can activate it by clicking the toggle. A transaction is initiated, with `chainId`, `address` and `validators` as parameters. The chainid and address are available in the state, and the validators are queried from the chain.
 
 ### Autocompound
 
@@ -60,6 +58,7 @@ TODO
 - [Presentation slides](https://docs.google.com/presentation/d/1IYWVWDWnHKXnIZhBLLIKgeaYTuGvEGsnP0QN7qjfSZY/edit?usp=sharing)
 - [Demo video]()
 - [Github repo](https://github.com/InterChadz/awesomewasm-2024)
+- [Dorahacks Buidl](https://dorahacks.io/buidl/12895)
 - [Twitter/X profile](https://x.com/TheInterChadz)
 
 ## Team

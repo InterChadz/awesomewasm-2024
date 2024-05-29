@@ -38,7 +38,7 @@ sleep 3
 CONTRACT_ADDR=$(neutrond q tx "$INSTANTIATE_HASH" --output json | jq -r '.events[] | select(.type=="instantiate") | .attributes[] | select(.key=="_contract_address") | .value')
 echo "Instantiated contract with address: $CONTRACT_ADDR"
 
-ADD_CHAIN_HASH=$(neutrond tx wasm execute "$CONTRACT_ADDR" "{\"add_supported_chain\": {\"chain_id\": \"$COSMOS_HUB_CHAIN_ID\", \"connection_id\": \"$CONNECTION_ID\"}}" --amount 1000000untrn --from $NEUTRON_ADMIN_KEY --gas-prices 0.025untrn --gas auto --gas-adjustment 1.75 --chain-id $NEUTRON_CHAIN_ID --yes --keyring-backend test --output json  | jq -r ".txhash")
+ADD_CHAIN_HASH=$(neutrond tx wasm execute "$CONTRACT_ADDR" "{\"add_supported_chain\": {\"chain_id\": \"$COSMOS_HUB_CHAIN_ID\", \"connection_id\": \"$CONNECTION_ID\", \"denom\": \"uatom\"}}" --amount 1000000untrn --from $NEUTRON_ADMIN_KEY --gas-prices 0.025untrn --gas auto --gas-adjustment 1.75 --chain-id $NEUTRON_CHAIN_ID --yes --keyring-backend test --output json  | jq -r ".txhash")
 sleep 3
 ADD_CHAIN_RESULT=$(neutrond q tx "$ADD_CHAIN_HASH" --output json | jq -r ".code")
 if [ "$ADD_CHAIN_RESULT" != "0" ]; then

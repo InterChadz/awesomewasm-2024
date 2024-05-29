@@ -16,6 +16,7 @@ pub enum ExecuteMsg {
     AddSupportedChain {
         chain_id: String,
         connection_id: String,
+        denom: String,
     },
     RegisterUser {
         registrations: Vec<UserChainRegistrationInput>,

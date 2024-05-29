@@ -179,6 +179,7 @@ mod tests {
             let add_chain_msg = ExecuteMsg::AddSupportedChain {
                 chain_id: "chain_id".to_string(),
                 connection_id: "connection_id".to_string(),
+                denom: "denom".to_string(),
             };
             execute(deps.as_mut(), mock_env(), info.clone(), add_chain_msg).unwrap();
 
@@ -226,11 +227,13 @@ mod tests {
             let add_chain_msg1 = ExecuteMsg::AddSupportedChain {
                 chain_id: "chain_id".to_string(),
                 connection_id: "connection_id".to_string(),
+                denom: "denom".to_string(),
             };
             execute(deps.as_mut(), mock_env(), info.clone(), add_chain_msg1).unwrap();
             let add_chain_msg2 = ExecuteMsg::AddSupportedChain {
                 chain_id: "osmosis".to_string(),
                 connection_id: "osmosis_connection_id".to_string(),
+                denom: "uosmo".to_string(),
             };
             execute(deps.as_mut(), mock_env(), info.clone(), add_chain_msg2).unwrap();
             let info = mock_info("local_user", &coins(1000000, "untrn"));

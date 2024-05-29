@@ -7,7 +7,9 @@ use neutron_sdk::interchain_queries;
 use neutron_sdk::interchain_txs::helpers::get_port_id;
 
 use crate::error::ContractError;
+use crate::helpers::get_delegate_submsg;
 use crate::msg::{ExecuteMsg, UserChainRegistrationInput};
+use crate::query::query_calculate_reward;
 use crate::state::{
     user_chain_registrations, Chain, Config, UserChainRegistration, CONFIG,
     ICA_PORT_ID_TO_CHAIN_ID, NEXT_REPLY_ID, REPLY_ID_TO_USER_CHAIN_REGISTRATION, SUPPORTED_CHAINS,
@@ -29,7 +31,8 @@ pub fn execute(
         ExecuteMsg::AddSupportedChain {
             chain_id,
             connection_id,
-        } => add_supported_chain(deps, env, info, chain_id, connection_id),
+            denom,
+        } => add_supported_chain(deps, env, info, chain_id, connection_id, denom),
         ExecuteMsg::RegisterUser { registrations } => register_user(deps, info, registrations),
         ExecuteMsg::TopupUserBalance {} => topup_user_balance(deps, env, info),
         ExecuteMsg::Autocompound {} => autocompound(deps, env, info),
@@ -61,6 +64,7 @@ pub fn add_supported_chain(
     info: MessageInfo,
     chain_id: String,
     connection_id: String,
+    denom: String,
 ) -> Result<Response<NeutronMsg>, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     if info.sender != config.admin {
@@ -88,6 +92,7 @@ pub fn add_supported_chain(
         ica_id: ica_id.clone(),
         ica_port_id: ica_port_id.clone(),
         autocompound_cost: 100000, // TODO: Make this configurable, now set as 0.1 $NTRN
+        denom,                     // the staking denom on the dst chain we autocompound for
         ica_address: None,
         ica_error: None,
     };
@@ -109,6 +114,10 @@ pub fn add_supported_chain(
         .add_attribute("ica_port_id", ica_port_id)
         .add_message(register))
 }
+
+// TODO: update_supported_chain (priority)
+
+// TODO remove_supported_chain
 
 pub fn register_user(
     deps: DepsMut<NeutronQuery>,
@@ -261,33 +270,56 @@ pub fn autocompound(
             .load(deps.storage, dst_chain_id)
             .map_err(|_| StdError::not_found("Chain not found"))?;
 
-        // TODO: Is it time to autocompound for that user based on the latest height we did, and the threshold we want? Add this to Config struct
+        for validator in registration.validators {
+            // Only if the given user has enough topped up balance to cover protocol fees
+            if balance.u128() < supported_chain.autocompound_cost {
+                continue;
+            }
 
-        // TODO: Does this user has any rewards to compound? This should be at least > 0.1 (100000 udenom). Make this configurable.
+            // TODO: Is it time to autocompound for that user based on the latest height we did, and the threshold we want? Add this to Config struct
 
-        // only if the given user has enough topped up balance to cover protocol fees
-        if balance.u128() < supported_chain.autocompound_cost {
-            continue;
+            // Does this user has any rewards to compound?
+            let calculate_reward = query_calculate_reward(
+                deps.as_ref(),
+                env,
+                registration.local_address.to_string(),
+                registration.chain_id,
+                registration.remote_address,
+            )?;
+
+            // If there are not enough rewards to compound, continue
+            // TODO_NICE: This could be use a threshold like at least > 0.1 (100000 udenom). Make this configurable.
+            if calculate_reward.reward == 0 {
+                continue;
+            }
+
+            // Here we know that user can autocompound. Get the delegate submsg accordingly.
+
+            let submsg = get_delegate_submsg(
+                deps,
+                env,
+                supported_chain.ica_id,
+                supported_chain.ica_port_id,
+                supported_chain.connection_id,
+                registration.remote_address,
+                validator, // TODO: We should iter validators, querying the cumulated rewards foreach of them
+                calculate_reward.reward,
+                supported_chain.denom,
+                None, // TODO: timeout by Config struct, or default defined on helpers.rs?
+            )?;
+            submsgs.extend(submsg);
         }
-
-        let submsg = get_delegate_submsg(
-            deps,
-            env,
-            supported_chain.ica_id,
-            supported_chain.ica_port_id,
-            supported_chain.connection_id,
-            registration.remote_address,
-            registration.validators[0].clone(), // TODO: We should iter validators, querying the cumulated rewards foreach of them
-            amount,
-            denom,
-            None, // timeout,
-        )?;
-        submsgs.extend(submsg);
     }
 
-    Ok(Response::new()
-        .add_attribute("action", "autocompound")
-        .add_submessages(submsgs))
+    // Declare a response
+    let response = Response::new().add_attribute("action", "autocompound");
+
+    // Append submsgs only if there are any
+    if !submsgs.is_empty() {
+        response.add_submessages(submsgs);
+    }
+
+    Ok(response)
 }
 
 #[cfg(test)]
@@ -365,6 +397,7 @@ mod tests {
             let msg = ExecuteMsg::AddSupportedChain {
                 chain_id: "chain_id".to_string(),
                 connection_id: "connection_id".to_string(),
+                denom: "denom".to_string(),
             };
 
             let res = execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
@@ -416,6 +449,7 @@ mod tests {
             let add_supported_chain_msg = ExecuteMsg::AddSupportedChain {
                 chain_id: "chain_id".to_string(),
                 connection_id: "connection_id".to_string(),
+                denom: "denom".to_string(),
             };
             execute(
                 deps.as_mut(),

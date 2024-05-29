@@ -9,7 +9,7 @@ use serde_json_wasm::to_vec;
 
 use crate::{error::ContractError, state::REPLY_ID_STORAGE, sudo::SudoPayload};
 
-const DEFAULT_TIMEOUT_SECONDS: u64 = 60 * 60 * 24 * 7 * 2; // 2 weeks
+const DEFAULT_TIMEOUT_SECONDS: u64 = 60 * 60 * 24 * 7 * 2; // 2 weeks TODO: this is a lot, how much? Or we just deprecate this and we always pass it from above.
 
 pub fn get_delegate_submsg(
     mut deps: DepsMut<NeutronQuery>,

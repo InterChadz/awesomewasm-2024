@@ -15,6 +15,7 @@ pub struct Chain {
     pub ica_id: String,
     pub ica_port_id: String,
     pub autocompound_cost: u128,   // Always in untrn
+    pub denom: String,             // The native stake token of the dst chain
     pub ica_address: Option<Addr>, // When this is set, the chain is ready to be used
     pub ica_error: Option<String>, // When this is set, the ica setup has failed
 }

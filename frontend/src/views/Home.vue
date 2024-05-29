@@ -6,7 +6,7 @@
     </header>
     <section class="description">
       <p>
-        Real chads restake at InterChadz. 
+        Real chads restake on InterChadz. 
       </p>
     </section>
 
@@ -17,7 +17,7 @@
           <div class="card bg-secondary border-0 rounded-3 p-3">
             <h2>Auto-compound staking</h2>
             <p>
-              InterChadz is available on multiple chains, auto-compounding all the staked amounts periodically to maximize staking yield.
+              InterChadz is available on multiple chains. By auto-compounding all your staked amounts periodically, InterChadz helps you to maximize your staking yield.
             </p>
           </div>
         </div>
@@ -33,7 +33,7 @@
           <div class="card bg-secondary border-0 rounded-3 p-3">
             <h2>Fees</h2>
             <p>
-              All fees and charges on are handled by the InterChadz platform. The dashboard gives a clear view of all the fees and charges.
+              All fees and charges on are handled by the InterChadz platform. The dashboard gives you a clear view of all the fees, charges and rewards.
             </p>
           </div>
         </div>

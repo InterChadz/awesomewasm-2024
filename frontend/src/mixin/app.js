@@ -16,12 +16,15 @@ const mxApp = {
       'initUser',
       'fetchAppConfig',
       'fetchUserData',
+      'fetchAppSupportedChains'
     ]),
 
     async fetchOnce() {
       await this.initUser();
 
       await this.fetchAppConfig();
+
+      await this.fetchAppSupportedChains();
 
       // Init signer and querier for the connected user, if any
       if (this.userAddress) {

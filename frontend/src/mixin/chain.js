@@ -1,16 +1,13 @@
-import mxToast from "./toast";
 import {mapGetters} from "vuex";
 import {toUtf8} from "@cosmjs/encoding";
 
 const mxChain = {
-  mixins: [mxToast],
-
   computed: {
     ...mapGetters(['userSigner', 'userAddress', 'appConfig']),
   },
 
   methods: {
-    async someTx() {
+    async registerUser(chainId, userAddress, validators) {
       /** @type {import("@cosmjs/proto-signing").EncodeObject} */
       const msg = {
         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -18,7 +15,46 @@ const mxChain = {
           sender: this.userAddress,
           contract: process.env.VUE_APP_CONTRACT,
           msg: toUtf8(JSON.stringify({
-            // TODO: Add your message here
+            register_user: {
+              registrations: [{
+                chain_id: chainId,
+                address: userAddress,
+                validators: validators,
+              }] // TODO add registration data
+            }
+          })),
+          funds: [],
+        }
+      }
+      return this._submitTx(msg)
+    },
+
+  async topupUserBalance(funds) {
+    /** @type {import("@cosmjs/proto-signing").EncodeObject} */
+    const msg = {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: {
+        sender: this.userAddress,
+        contract: process.env.VUE_APP_CONTRACT,
+        msg: toUtf8(JSON.stringify({
+          topup_user_balance: {}
+        })),
+        funds: funds,
+      }
+    }
+    return this._submitTx(msg);
+  },
+
+
+    async autocompound() {
+      /** @type {import("@cosmjs/proto-signing").EncodeObject} */
+      const msg = {
+        typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+        value: {
+          sender: this.userAddress,
+          contract: process.env.VUE_APP_CONTRACT,
+          msg: toUtf8(JSON.stringify({
+            autocompound: {},
           })),
           funds: [],
         }

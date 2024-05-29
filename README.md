@@ -7,9 +7,9 @@
 ![logo](logo.png)
 </div>
 
-💸 Given the recent news about Yieldmos being taken down, there is a need for a new restaking solution. InterChadz uses a restaking contract deployed on Neutron where users pay a fee to set up automated stake compounding.
+💸 Given the recent news about Yieldmos being taken down, there is a need for a new restaking solution. InterChadz uses a restaking contract deployed on Neutron where users pay a fee to set up automated compounding of staking rewards.
 
-⚙️ Built with interchian accounts + authz + Neutron Cron.
+⚙️ Built with interchain accounts + authz + Neutron Cron.
 
 ## Flow
 
@@ -24,27 +24,35 @@
 
 ## Screenshots
 
-| Landing Page                               | Restaking dashboard                        |
-| ------------------------------------------ | ------------------------------------------ |
-| ![Screenshot](screenshots/placeholder.png) | ![Screenshot](screenshots/placeholder.png) |
+| Landing Page                     | Restaking dashboard              |
+| -------------------------------- | -------------------------------- |
+| ![Screenshot](screenshots/1.png) | ![Screenshot](screenshots/2.png) |
 
-| Compounding                                | Other screenshot                           |
-| ------------------------------------------ | ------------------------------------------ |
-| ![Screenshot](screenshots/placeholder.png) | ![Screenshot](screenshots/placeholder.png) |
+| Topping up balance               | Team page                        |
+| -------------------------------- | -------------------------------- |
+| ![Screenshot](screenshots/3.png) | ![Screenshot](screenshots/4.png) |
 
 ## Project setup
 
 For detailed instructions to start the dApp, see the respective readme files:
 
 - [Frontend installation instructions](https://github.com/InterChadz/awesomewasm-2024/blob/main/frontend/README-Vue.md)
-  - The frontend can also be accessed [here](https://interchadz.vercel.app/) without installation.
+  - The frontend can also be accessed [here](https://interchadz.vercel.app/).
 - [Contracts installation instructions](https://github.com/InterChadz/awesomewasm-2024/blob/main/cosmwasm/README.md)
 
-## Hackathon tracks
+## Functions
 
-### Neutron Track - Free-form project track
+### RegisterUser
 
-### Neutron + Abstract Bonus Bounty
+This function is available on the staking dashboard as a toggle. When restaking is not enabled, users can activate it by clicking the toggle. A transaction is initiated, with `chainId`, `address` and 'validators' as parameters. The chainid and address are available in the state, and the validators are queried from the chain.
+
+### Autocompound
+
+This function triggers the autocompound feature, compounding all pending rewards to the staked balances.
+
+### TopupUserBalance
+
+TODO
 
 ## Links
 

@@ -3,13 +3,13 @@ use cosmwasm_std::{
     Uint128,
 };
 use cw0::must_pay;
-use interchain_queries::v047::register_queries::new_register_delegator_delegations_query_msg;
 use neutron_sdk::bindings::msg::NeutronMsg;
 use neutron_sdk::bindings::query::NeutronQuery;
-use neutron_sdk::interchain_queries;
+use neutron_sdk::interchain_queries::types::QueryPayload;
 use neutron_sdk::interchain_txs::helpers::get_port_id;
 
 use crate::error::ContractError;
+use crate::icq::keys::create_all_icq_keys_for_user;
 use crate::helpers::{get_delegate_submsg, get_due_user_chain_registrations};
 use crate::msg::{ExecuteMsg, UserChainRegistrationInput};
 use crate::query::query_calculate_reward;
@@ -250,13 +250,16 @@ pub fn register_user(
             .unwrap();
 
         // ICQ stuff:
-        let icq_msg = new_register_delegator_delegations_query_msg(
+        let icq_keys = create_all_icq_keys_for_user(
+            remote_address.clone(),
+            registration.clone().validators,
+            None,
+        ).unwrap();
+        let icq_msg = NeutronMsg::register_interchain_query(
+            QueryPayload::KV(icq_keys),
             chain.connection_id,
-            remote_address,
-            registration.validators,
-            5,
-        )
-        .unwrap();
+            5)
+            .unwrap();
 
         let sub_msg = SubMsg::reply_on_success(icq_msg, next_reply_id);
         icq_msgs.push(sub_msg);
@@ -326,17 +329,17 @@ pub fn autocompound(
     let mut delegate_submsgs: Vec<SubMsg<NeutronMsg>> = vec![];
     let mut keeper_fee: u128 = 0;
 
-    for ((src_addr, dst_chain_id, dst_addr), registration) in registrations {
+    for registration in registrations {
         let mut balance = USER_BALANCES
-            .load(deps.storage, src_addr.clone())
+            .load(deps.as_ref().storage, registration.clone().local_address)
             .unwrap_or_default();
 
         let supported_chain = SUPPORTED_CHAINS
-            .load(deps.storage, dst_chain_id.clone())
+            .load(deps.as_ref().storage, registration.clone().chain_id)
             .map_err(|_| StdError::not_found("Chain not found"))?;
 
         // Since a user could have staking position with more than one validator, we iterate over all of them
-        for validator in registration.validators {
+        for validator in registration.clone().validators {
             // Only if the given user has enough topped up balance to cover protocol fees
             if balance.u128() < supported_chain.autocompound_cost {
                 continue;
@@ -345,17 +348,18 @@ pub fn autocompound(
             // TODO: Is it time to autocompound for that user based on the latest height we did, and the threshold we want? Add this to Config struct
 
             // Does this user has any rewards to compound?
-            let calculate_reward = query_calculate_reward(
+            let calculate_rewards = query_calculate_reward(
                 deps.as_ref(),
                 env.clone(),
-                registration.local_address.to_string(),
-                dst_chain_id.clone(),
-                dst_addr.clone(),
+                registration.clone().local_address.to_string(),
+                registration.clone().chain_id,
+                registration.clone().remote_address,
             )?;
+            let calculate_reward = calculate_rewards.rewards.into_iter().find(|r| r.validator == validator).unwrap();
 
             // If there are not enough rewards to compound, continue
             // TODO_NICE: This could be use a threshold like at least > 0.1 (100000 udenom). Make this configurable.
-            if calculate_reward.reward == 0 {
+            if calculate_reward.reward.first().unwrap().amount.is_zero() {
                 continue;
             }
 
@@ -369,9 +373,9 @@ pub fn autocompound(
             let submsg = get_delegate_submsg(
                 supported_chain.clone().ica_id,
                 supported_chain.clone().connection_id,
-                dst_addr.clone(),
+                registration.clone().remote_address,
                 validator, // TODO: We should iter validators, querying the cumulated rewards foreach of them
-                calculate_reward.reward,
+                calculate_reward.reward.first().unwrap().amount.u128(),
                 supported_chain.clone().denom,
                 half_autocompound_cost,
                 None, // TODO: timeout by Config struct, or default defined on helpers.rs?
@@ -386,7 +390,7 @@ pub fn autocompound(
         }
 
         // Save the new USER_BALANCES for the current user
-        USER_BALANCES.save(deps.storage, src_addr, &balance)?;
+        USER_BALANCES.save(deps.storage, registration.clone().local_address, &balance)?;
     }
 
     // Return a response only if there are any msgs to send, otherwise throw a ContractError.
@@ -478,7 +482,7 @@ mod tests {
                     autocompound_threshold: 100,
                 },
             )
-            .unwrap();
+                .unwrap();
 
             let msg = ExecuteMsg::AddSupportedChain {
                 chain_id: "chain_id".to_string(),
@@ -508,13 +512,13 @@ mod tests {
     }
 
     mod test_register_user {
-        use cosmwasm_std::testing::{mock_env, mock_info, MockApi};
         use cosmwasm_std::{coins, Order, StdResult};
+        use cosmwasm_std::testing::{mock_env, mock_info, MockApi};
 
         use crate::execute::execute;
         use crate::instantiate::instantiate;
         use crate::msg::{ExecuteMsg, InstantiateMsg};
-        use crate::state::{user_chain_registrations, NEXT_REPLY_ID};
+        use crate::state::{NEXT_REPLY_ID, user_chain_registrations};
         use crate::testing::helpers::mock_neutron_dependencies;
 
         #[test]
@@ -532,7 +536,7 @@ mod tests {
                     autocompound_threshold: 100,
                 },
             )
-            .unwrap();
+                .unwrap();
 
             let add_supported_chain_msg = ExecuteMsg::AddSupportedChain {
                 chain_id: "chain_id".to_string(),
@@ -546,7 +550,7 @@ mod tests {
                 creator_info.clone(),
                 add_supported_chain_msg,
             )
-            .unwrap();
+                .unwrap();
 
             let mock_api = MockApi::default().with_prefix("cosmos");
             let remote_user_addr = mock_api.addr_make("remote_user");

@@ -35,21 +35,10 @@ pub fn reply(deps: DepsMut, _: Env, msg: Reply) -> StdResult<Response> {
         return Ok(Response::default());
     }
 
-    let regs: Vec<_> = user_chain_registrations()
-        .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
-        .collect();
-
-    let reply_regs: Vec<_> = REPLY_ID_TO_USER_CHAIN_REGISTRATION
-        .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
-        .collect();
-    let reply_reg_1 = reply_regs.get(0).unwrap();
 
     // If not found by now, we error out
     Err(StdError::generic_err(format!(
-        "unsupported reply message id {}, reg length {}, reply reg length {}, reply reg[0] id {}",
+        "unsupported reply message id {}",
         msg.id,
-        regs.len(),
-        reply_regs.len(),
-        reply_reg_1.as_ref().unwrap().0
     )))
 }

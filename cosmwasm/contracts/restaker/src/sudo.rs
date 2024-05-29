@@ -1,8 +1,13 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{entry_point, Addr, DepsMut, Env, Response, StdError, StdResult};
+use cosmwasm_std::{Addr, DepsMut, entry_point, Env, Response, StdError, StdResult};
+use neutron_sdk::bindings::msg::NeutronMsg;
 use neutron_sdk::bindings::query::NeutronQuery;
+use neutron_sdk::interchain_queries::{check_query_type, get_registered_query, query_kv_result};
+use neutron_sdk::interchain_queries::types::QueryType;
 use neutron_sdk::sudo::msg::{RequestPacket, SudoMsg};
 
+use crate::icq::keys::{create_all_icq_keys_for_user, ValidatorHistoricalRange};
+use crate::icq::reconstruct::UserQueryData;
 use crate::state::{ICA_PORT_ID_TO_CHAIN_ID, SUPPORTED_CHAINS};
 
 /// SudoPayload is a type that stores information about a transaction that we try to execute
@@ -24,7 +29,7 @@ struct OpenAckVersion {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn sudo(deps: DepsMut<NeutronQuery>, env: Env, msg: SudoMsg) -> StdResult<Response> {
+pub fn sudo(deps: DepsMut<NeutronQuery>, env: Env, msg: SudoMsg) -> StdResult<Response<NeutronMsg>> {
     match msg {
         SudoMsg::OpenAck {
             port_id,
@@ -39,6 +44,7 @@ pub fn sudo(deps: DepsMut<NeutronQuery>, env: Env, msg: SudoMsg) -> StdResult<Re
             counterparty_channel_id,
             counterparty_version,
         ),
+        SudoMsg::KVQueryResult { query_id } => sudo_kv_query_result(deps, query_id),
         SudoMsg::Error { request, details } => sudo_error(deps, request, details),
         _ => Ok(Response::default()),
     }
@@ -51,7 +57,7 @@ fn sudo_open_ack(
     _channel_id: String,
     _counterparty_channel_id: String,
     counterparty_version: String,
-) -> StdResult<Response> {
+) -> StdResult<Response<NeutronMsg>> {
     deps.api
         .debug(format!("WASMDEBUG: sudo_open_ack, port_id: {:?}", port_id).as_str());
 
@@ -86,11 +92,42 @@ fn sudo_open_ack(
     Err(StdError::generic_err("Can't parse counterparty_version"))
 }
 
+fn sudo_kv_query_result(deps: DepsMut<NeutronQuery>, query_id: u64) -> StdResult<Response<NeutronMsg>> {
+    deps.api
+        .debug(format!("WASMDEBUG: sudo_kv_query_result, query_id: {:?}", query_id).as_str());
+
+    let resp = get_registered_query(deps.as_ref(), query_id).unwrap();
+    check_query_type(resp.registered_query.query_type, QueryType::KV).unwrap();
+
+    let user_query_data: UserQueryData = query_kv_result(deps.as_ref(), query_id).unwrap();
+    deps.api
+        .debug(format!("WASMDEBUG: user_query_data, delegation len: {}, val len {}, starting_infos len {} historical_rewards len {}",
+                       user_query_data.delegations.len(),
+                       user_query_data.validators.len(),
+                       user_query_data.delegator_starting_infos.len(),
+                       user_query_data.validator_historical_rewards.len()
+        ).as_str());
+
+    let delegation = user_query_data.delegations.get(0).unwrap();
+    let validators = user_query_data.validators.into_iter().map(|v| v.operator_address).collect::<Vec<_>>();
+    let validator_historical_range = user_query_data.delegator_starting_infos.into_iter()
+        .map(|v| {
+            ValidatorHistoricalRange {
+                validator: v.validator,
+                period: v.previous_period,
+            }
+        }).collect::<Vec<_>>();
+    let icq_keys = create_all_icq_keys_for_user(delegation.clone().delegator_address, validators, Some(validator_historical_range)).unwrap();
+    let icq_msg = NeutronMsg::update_interchain_query(query_id, Some(icq_keys), Some(6), None).unwrap();
+
+    Ok(Response::new().add_message(icq_msg).add_attribute("action", "sudo_kv_query_result"))
+}
+
 fn sudo_error(
     deps: DepsMut<NeutronQuery>,
     request: RequestPacket,
     details: String,
-) -> StdResult<Response> {
+) -> StdResult<Response<NeutronMsg>> {
     deps.api
         .debug(format!("WASMDEBUG: sudo error: {}", details).as_str());
     deps.api
@@ -114,8 +151,8 @@ fn sudo_error(
 #[cfg(test)]
 mod tests {
     mod test_sudo_open_ack {
+        use cosmwasm_std::{Addr, coins};
         use cosmwasm_std::testing::{mock_env, mock_info};
-        use cosmwasm_std::{coins, Addr};
         use neutron_sdk::sudo::msg::SudoMsg;
 
         use crate::execute::execute;
@@ -140,7 +177,7 @@ mod tests {
                     autocompound_threshold: 100,
                 },
             )
-            .unwrap();
+                .unwrap();
             let add_chain_msg = ExecuteMsg::AddSupportedChain {
                 chain_id: "chain_id".to_string(),
                 connection_id: "connection_id".to_string(),

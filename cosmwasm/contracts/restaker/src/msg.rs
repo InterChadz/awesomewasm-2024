@@ -1,5 +1,7 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
+use cosmwasm_std::Coin;
 use cosmwasm_std::Addr;
+use crate::icq::reconstruct::UserQueryData;
 
 use crate::state::{Config, UserChainRegistration};
 
@@ -67,6 +69,12 @@ pub enum QueryMsg {
         chain_id: String,
         remote_address: String,
     },
+    #[returns(UserQueryData)]
+    UserQuery {
+        address: String,
+        chain_id: String,
+        remote_address: String,
+    },
     #[returns(UserBalanceResponse)]
     UserBalance { address: String },
     #[returns(DueUserChainRegistrationsResponse)]
@@ -107,9 +115,14 @@ pub struct GetUserRegistrationsResponse {
 }
 
 #[cw_serde]
+pub struct RewardResponse {
+    pub validator: String,
+    pub reward: Vec<Coin>,
+}
+
+#[cw_serde]
 pub struct GetCalculatedRewardResponse {
-    pub total_delegation: u128,
-    pub reward: u128,
+    pub rewards: Vec<RewardResponse>,
 }
 
 #[cw_serde]
@@ -119,5 +132,5 @@ pub struct UserBalanceResponse {
 
 #[cw_serde]
 pub struct DueUserChainRegistrationsResponse {
-    pub due_user_chain_registrations: Vec<((Addr, String, String), UserChainRegistration)>,
+    pub due_user_chain_registrations: Vec<UserChainRegistration>,
 }

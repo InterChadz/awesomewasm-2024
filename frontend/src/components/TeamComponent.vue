@@ -7,10 +7,10 @@
           <h3>{{ member.name }}</h3>
           <div class="social-links">
             <a :href="`https://x.com/${member.twitter}`" target="_blank">
-              <img src="@/assets/twitter.svg" alt="Twitter" class="icon" />
+              <img src="@/assets/twitter-black.svg" alt="Twitter" class="icon" />
             </a>
             <a :href="`https://github.com/${member.twitter}`" target="_blank">
-              <img src="@/assets/github.svg" alt="GitHub" class="icon" />
+              <img src="@/assets/github-black.svg" alt="GitHub" class="icon" />
             </a>
           </div>
         </div>

@@ -57,7 +57,7 @@ TODO
 ## Links
 
 - [Vercel deployment](https://interchadz.vercel.app/)
-- [Presentation slides]()
+- [Presentation slides](https://docs.google.com/presentation/d/1IYWVWDWnHKXnIZhBLLIKgeaYTuGvEGsnP0QN7qjfSZY/edit?usp=sharing)
 - [Demo video]()
 - [Github repo](https://github.com/InterChadz/awesomewasm-2024)
 - [Twitter/X profile](https://x.com/TheInterChadz)

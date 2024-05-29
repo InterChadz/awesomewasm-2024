@@ -4,8 +4,8 @@
         <BalanceTableComponent :stakedValidators="stakedValidators" :pendingRewards="pendingRewards" :totalStaked="totalStaked" />
         <div class="action-buttons">
           <button @click="compound">Compound</button>
-          <button @click="withdrawStaked" disabled="true">Withdraw All</button>
-          <button @click="withdrawRewards" disabled="true">Withdraw Rewards</button>
+          <!-- <button @click="withdrawStaked" disabled="true">Withdraw All</button>
+          <button @click="withdrawRewards" disabled="true">Withdraw Rewards</button> -->
         </div>
     </div>
   </div>

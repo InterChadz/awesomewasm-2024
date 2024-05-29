@@ -15,10 +15,10 @@
           </div>
         </div>
         <div class="chain-info">
-          <h5>Cost to compound</h5>
-          <p>{{ costToAutocompound }}</p>
-          <h5>Last (auto)compound executed</h5>
-          <p>{{ lastAutocompound }}</p>
+          <p><b>Cost to compound: </b>
+          {{ costToAutocompound }}</p>
+          <p><b>Last (auto)compound executed: </b>
+          {{ lastAutocompound }}</p>
         </div>
       </div>
       <div class="col-md-6">

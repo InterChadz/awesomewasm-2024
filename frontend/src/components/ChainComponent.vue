@@ -9,7 +9,7 @@
             <div class="restaking-toggle">
               <span class="toggle-label">Restaking Enabled: </span>
               <label class="switch">
-                <input type="checkbox" v-model="restakingEnabled" @change="toggleRestaking">
+                <input type="checkbox" :checked="restakingEnabled" :disabled="isActive" @change="handleToggle">
                 <span class="slider round"></span>
               </label>
             </div>
@@ -32,9 +32,14 @@
 <script>
 import ChainStakingComponent from '@/components/ChainStakingComponent.vue';
 import NotActiveComponent from '@/components/NotActiveComponent.vue';
+import mxChain from '@/mixin/chain';
+import mxToast from "@/mixin/toast";
+
 
 export default {
   name: 'ChainComponent',
+  mixins:[mxChain, mxToast],
+
   components: {
     ChainStakingComponent,
     NotActiveComponent
@@ -51,7 +56,7 @@ export default {
   },
   data() {
     return {
-      restakingEnabled: false
+      restakingEnabled: this.isActive
     };
   },
   methods: {
@@ -73,8 +78,23 @@ export default {
       console.log('Withdraw Rewards button clicked');
       alert("Not implemented yet.");
     },
-    toggleRestaking() {
-      console.log('Toggle Restaking:', this.restakingEnabled);
+    async handleToggle(event) {
+      if (event.target.checked) {
+        try {
+          await this.registerUser();
+          this.toast.success("User registered successfully.");
+          this.restakingEnabled = true;
+        } catch (error) {
+
+          console.error("Error registering user:", error);
+          this.toast.error("Failed to register user.");
+          this.restakingEnabled = false;
+          event.target.checked = false;
+        }
+      } else {
+        // Prevent switching off if already active
+        event.target.checked = true;
+      }
     }
   }
 };

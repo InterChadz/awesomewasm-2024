@@ -15,7 +15,9 @@ const mxChain = {
           sender: this.userAddress,
           contract: process.env.VUE_APP_CONTRACT,
           msg: toUtf8(JSON.stringify({
-            register_user: {}
+            register_user: {
+              registrations: {} // TODO add registration data
+            }
           })),
           funds: [],
         }

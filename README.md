@@ -44,7 +44,7 @@ For detailed instructions to start the dApp, see the respective readme files:
 
 ### RegisterUser
 
-This function is available on the staking dashboard as a toggle. When restaking is not enabled, users can activate it by clicking the toggle. A transaction is initiated, with `chainId`, `address` and validators as parameters. The chainid and address are available in the state, and the validators are queried from the chain.
+This function is available on the staking dashboard as a toggle. When restaking is not enabled, users can activate it by clicking the toggle. A transaction is initiated, with `chainId`, `address` and 'validators' as parameters. The chainid and address are available in the state, and the validators are queried from the chain.
 
 ### Autocompound
 

@@ -7,7 +7,7 @@
 ![logo](logo.png)
 </div>
 
-💸 Given the recent news about Yieldmos being taken down, there is a need for a new restaking solution. InterChadz uses a restaking contract deployed on Neutron where users pay a fee to set up automated stake compounding.
+💸 Given the recent news about Yieldmos being taken down, there is a need for a new restaking solution. InterChadz uses a restaking contract deployed on Neutron where users pay a fee to set up automated compounding of staking rewards.
 
 ⚙️ Built with interchian accounts + authz + Neutron Cron.
 
@@ -40,11 +40,19 @@ For detailed instructions to start the dApp, see the respective readme files:
   - The frontend can also be accessed [here](https://interchadz.vercel.app/) without installation.
 - [Contracts installation instructions](https://github.com/InterChadz/awesomewasm-2024/blob/main/cosmwasm/README.md)
 
-## Hackathon tracks
+## Functions
 
-### Neutron Track - Free-form project track
+### RegisterUser
 
-### Neutron + Abstract Bonus Bounty
+This function is available on the staking dashboard as a toggle. When restaking is not enabled, users can activate it by clicking the toggle. A transaction is initiated, with `chainId`, `address` and validators as parameters. The chainid and address are available in the state, and the validators are queried from the chain.
+
+### Autocompound
+
+This function triggers the autocompound feature, compounding all pending rewards to the staked balance.
+
+### TopupUserBalance
+
+TODO
 
 ## Links
 

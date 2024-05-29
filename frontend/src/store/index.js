@@ -19,6 +19,7 @@ export default createStore({
       querier: null,
       address: null,
       balance: null,
+      contractBalance: null,
       registrations: [],
       rewards: null
     },
@@ -54,6 +55,10 @@ export default createStore({
       return state.user.balance;
     },
 
+    userContractBalance(state) {
+      return state.user.contractBalance;
+    },
+
     appConfig(state) {
       return state.app.config;
     },
@@ -78,6 +83,10 @@ export default createStore({
 
     setUserBalance(state, balance) {
       state.user.balance = balance;
+    },
+
+    setUserContractBalance(state, contractBalance) {
+      state.user.contractBalance = contractBalance;
     },
 
     setUserRegistrations(state, registrations) {
@@ -152,6 +161,22 @@ export default createStore({
         process.env.VUE_APP_FEE_DENOM
       );
       commit("setUserBalance", mxChainUtils.methods.displayAmount(Number(balance.amount)));
+
+      // #[returns(GetUserRegistrationsResponse)]
+      // UserRegistrations {
+      //     address: String,
+      //     limit: Option<u64>,
+      //     start_after: Option<String>,
+      // },
+      const contractBalance = await state.user.querier.queryContractSmart(
+        process.env.VUE_APP_CONTRACT,
+        {
+          user_balance: {
+            address: state.user.address
+          }
+        }
+      );
+      commit("setUserContractBalance", contractBalance.balance);
 
       // #[returns(GetUserRegistrationsResponse)]
       // UserRegistrations {

@@ -1,11 +1,13 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
+use cosmwasm_std::Addr;
 
-use crate::state::Config;
+use crate::state::{Config, UserChainRegistration};
 
 #[cw_serde]
 pub struct InstantiateMsg {
     pub admin: String,
     pub neutron_register_ica_fee: u128,
+    pub autocompound_threshold: u64,
 }
 
 #[cw_serde]
@@ -16,6 +18,14 @@ pub enum ExecuteMsg {
     AddSupportedChain {
         chain_id: String,
         connection_id: String,
+        denom: String,           // The native staking token of a dst chain
+        autocompound_cost: u128, // Always in untrn, this is the fee paid to the keepers for autocompounding
+    },
+    UpdateSupportedChain {
+        chain_id: String,
+        connection_id: String,
+        denom: String,           // The native staking token of a dst chain
+        autocompound_cost: u128, // Always in untrn, this is the fee paid to the keepers for autocompounding
     },
     RegisterUser {
         registrations: Vec<UserChainRegistrationInput>,
@@ -23,7 +33,9 @@ pub enum ExecuteMsg {
     TopupUserBalance {
         // recipient: String, // TODO: nice to have thing
     },
-    Autocompound {},
+    Autocompound {
+        delegators_amount: u64,
+    },
 }
 
 #[cw_serde]
@@ -57,6 +69,8 @@ pub enum QueryMsg {
     },
     #[returns(UserBalanceResponse)]
     UserBalance { address: String },
+    #[returns(DueUserChainRegistrationsResponse)]
+    DueUserChainRegistrationsResponse { delegators_amount: u64 },
 }
 
 #[cw_serde]
@@ -101,4 +115,9 @@ pub struct GetCalculatedRewardResponse {
 #[cw_serde]
 pub struct UserBalanceResponse {
     pub balance: u128,
+}
+
+#[cw_serde]
+pub struct DueUserChainRegistrationsResponse {
+    pub due_user_chain_registrations: Vec<((Addr, String, String), UserChainRegistration)>,
 }

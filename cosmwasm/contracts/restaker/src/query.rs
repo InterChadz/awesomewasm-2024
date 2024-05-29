@@ -4,9 +4,11 @@ use interchain_queries::v047::queries::query_delegations;
 use neutron_sdk::bindings::query::NeutronQuery;
 use neutron_sdk::interchain_queries;
 
+use crate::helpers::get_due_user_chain_registrations;
 use crate::msg::{
-    ChainResponse, ConfigResponse, GetCalculatedRewardResponse, GetUserRegistrationsResponse,
-    QueryMsg, SupportedChainsResponse, UserBalanceResponse, UserChainResponse,
+    ChainResponse, ConfigResponse, DueUserChainRegistrationsResponse, GetCalculatedRewardResponse,
+    GetUserRegistrationsResponse, QueryMsg, SupportedChainsResponse, UserBalanceResponse,
+    UserChainResponse,
 };
 use crate::state::{user_chain_registrations, Chain, CONFIG, SUPPORTED_CHAINS, USER_BALANCES};
 
@@ -41,6 +43,9 @@ pub fn query(deps: Deps<NeutronQuery>, env: Env, msg: QueryMsg) -> StdResult<Bin
             remote_address,
         )?),
         QueryMsg::UserBalance { address } => to_json_binary(&query_user_balance(deps, address)?),
+        QueryMsg::DueUserChainRegistrationsResponse { delegators_amount } => to_json_binary(
+            &query_due_user_chain_registrations(deps, env, delegators_amount)?,
+        ),
     }
 }
 
@@ -149,6 +154,19 @@ pub fn query_user_balance(
     })
 }
 
+pub fn query_due_user_chain_registrations(
+    deps: Deps<NeutronQuery>, // Change to DepsMut<NeutronQuery>
+    env: Env,
+    delegators_amount: u64,
+) -> StdResult<DueUserChainRegistrationsResponse> {
+    let due_user_chain_registrations =
+        get_due_user_chain_registrations(&deps, &env, delegators_amount).unwrap();
+
+    Ok(DueUserChainRegistrationsResponse {
+        due_user_chain_registrations,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     mod test_query_supported_chains {
@@ -173,12 +191,15 @@ mod tests {
                 InstantiateMsg {
                     admin: info.sender.to_string(),
                     neutron_register_ica_fee: 1000000,
+                    autocompound_threshold: 100,
                 },
             )
             .unwrap();
             let add_chain_msg = ExecuteMsg::AddSupportedChain {
                 chain_id: "chain_id".to_string(),
                 connection_id: "connection_id".to_string(),
+                denom: "denom".to_string(),
+                autocompound_cost: 100000,
             };
             execute(deps.as_mut(), mock_env(), info.clone(), add_chain_msg).unwrap();
 
@@ -220,17 +241,22 @@ mod tests {
                 InstantiateMsg {
                     admin: info.sender.to_string(),
                     neutron_register_ica_fee: 1000000,
+                    autocompound_threshold: 100,
                 },
             )
             .unwrap();
             let add_chain_msg1 = ExecuteMsg::AddSupportedChain {
                 chain_id: "chain_id".to_string(),
                 connection_id: "connection_id".to_string(),
+                denom: "denom".to_string(),
+                autocompound_cost: 100000,
             };
             execute(deps.as_mut(), mock_env(), info.clone(), add_chain_msg1).unwrap();
             let add_chain_msg2 = ExecuteMsg::AddSupportedChain {
                 chain_id: "osmosis".to_string(),
                 connection_id: "osmosis_connection_id".to_string(),
+                denom: "uosmo".to_string(),
+                autocompound_cost: 100000,
             };
             execute(deps.as_mut(), mock_env(), info.clone(), add_chain_msg2).unwrap();
             let info = mock_info("local_user", &coins(1000000, "untrn"));
@@ -268,6 +294,98 @@ mod tests {
             let response = query(deps.as_ref(), mock_env(), query_msg).unwrap();
             let res: GetUserRegistrationsResponse = from_json(&response).unwrap();
             assert_eq!(res.user_chain_registrations.len(), 2);
+        }
+    }
+
+    mod test_query_due_user_chain_registrations {
+        use std::vec;
+
+        use cosmwasm_std::testing::{mock_env, mock_info, MockApi};
+        use cosmwasm_std::{coins, from_json};
+
+        use crate::execute::execute;
+        use crate::instantiate::instantiate;
+        use crate::msg::{DueUserChainRegistrationsResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
+        use crate::query::query;
+        use crate::testing::helpers::mock_neutron_dependencies;
+
+        #[test]
+        fn test_query_due_user_chain_registrations() {
+            let mut deps = mock_neutron_dependencies();
+            let creator_info = mock_info("creator", &coins(1000000, "untrn"));
+
+            instantiate(
+                deps.as_mut(),
+                mock_env(),
+                creator_info.clone(),
+                InstantiateMsg {
+                    admin: creator_info.sender.to_string(),
+                    neutron_register_ica_fee: 1000000,
+                    autocompound_threshold: 100,
+                },
+            )
+            .unwrap();
+
+            let add_supported_chain_msg = ExecuteMsg::AddSupportedChain {
+                chain_id: "chain_id".to_string(),
+                connection_id: "connection_id".to_string(),
+                denom: "denom".to_string(),
+                autocompound_cost: 100000,
+            };
+            execute(
+                deps.as_mut(),
+                mock_env(),
+                creator_info.clone(),
+                add_supported_chain_msg,
+            )
+            .unwrap();
+
+            let mock_api = MockApi::default().with_prefix("cosmos");
+            let remote_user_addr = mock_api.addr_make("remote_user");
+
+            let info = mock_info("local_user", &coins(1000000, "untrn"));
+            let validator1 = mock_api.addr_make("validator1");
+            let validator2 = mock_api.addr_make("validator2");
+            let register_user_msg = ExecuteMsg::RegisterUser {
+                registrations: vec![crate::msg::UserChainRegistrationInput {
+                    chain_id: "chain_id".to_string(),
+                    address: remote_user_addr.to_string(),
+                    validators: vec![
+                        validator1.clone().to_string(),
+                        validator2.clone().to_string(),
+                    ],
+                }],
+            };
+
+            // Register a user at height 1000
+            let mut mock_env = mock_env();
+            mock_env.block.height = 1000;
+            let res = execute(
+                deps.as_mut(),
+                mock_env.clone(),
+                info.clone(),
+                register_user_msg,
+            )
+            .unwrap();
+            assert_eq!(1, res.messages.len());
+
+            // Increase 99 blocks, we still should not be able to compound
+            mock_env.block.height = 1099;
+            let query_msg = QueryMsg::DueUserChainRegistrationsResponse {
+                delegators_amount: 1,
+            };
+            let response = query(deps.as_ref(), mock_env.clone(), query_msg).unwrap();
+            let res = from_json::<DueUserChainRegistrationsResponse>(&response).unwrap();
+            assert_eq!(res.due_user_chain_registrations.len(), 0);
+
+            // Compound time!
+            mock_env.block.height = 1100; // init + autocompound_threshold set as 100
+            let query_msg = QueryMsg::DueUserChainRegistrationsResponse {
+                delegators_amount: 1,
+            };
+            let response = query(deps.as_ref(), mock_env, query_msg).unwrap();
+            let res = from_json::<DueUserChainRegistrationsResponse>(&response).unwrap();
+            assert_eq!(res.due_user_chain_registrations.len(), 1);
         }
     }
 }

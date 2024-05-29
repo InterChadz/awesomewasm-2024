@@ -1,12 +1,13 @@
 use cosmwasm_std::{entry_point, DepsMut, Env, MessageInfo, Response};
+use neutron_sdk::bindings::query::NeutronQuery;
 
 use crate::error::ContractError;
 use crate::msg::InstantiateMsg;
-use crate::state::{Config, CONFIG};
+use crate::state::{Config, CONFIG, NEXT_REPLY_ID};
 
 #[entry_point]
 pub fn instantiate(
-    deps: DepsMut,
+    deps: DepsMut<NeutronQuery>,
     _env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
@@ -22,21 +23,24 @@ pub fn instantiate(
         )
         .unwrap();
 
+    NEXT_REPLY_ID.save(deps.storage, &1).unwrap();
+
     Ok(Response::new())
 }
 
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::coins;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+    use cosmwasm_std::testing::{mock_env, mock_info};
 
     use crate::instantiate::instantiate;
     use crate::msg::InstantiateMsg;
-    use crate::state::CONFIG;
+    use crate::state::{CONFIG, NEXT_REPLY_ID};
+    use crate::testing::helpers::mock_neutron_dependencies;
 
     #[test]
     fn test_initialization() {
-        let mut deps = mock_dependencies();
+        let mut deps = mock_neutron_dependencies();
 
         let info = mock_info("creator", &coins(10000, "untrn"));
 
@@ -54,5 +58,8 @@ mod tests {
             config.neutron_register_ica_fee,
             msg.neutron_register_ica_fee
         );
+
+        let next_reply_id = NEXT_REPLY_ID.load(deps.as_ref().storage).unwrap();
+        assert_eq!(next_reply_id, 1);
     }
 }

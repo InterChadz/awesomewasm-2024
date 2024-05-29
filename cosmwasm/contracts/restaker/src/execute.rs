@@ -1,15 +1,15 @@
-use cosmwasm_std::{coins, entry_point, DepsMut, Env, MessageInfo, Response};
-use cw0::must_pay;
+use cosmwasm_std::{coins, DepsMut, entry_point, Env, MessageInfo, Response};
 use interchain_queries::v047::register_queries::new_register_delegator_delegations_query_msg;
 use neutron_sdk::bindings::msg::NeutronMsg;
+use neutron_sdk::bindings::query::NeutronQuery;
 use neutron_sdk::interchain_queries;
 use neutron_sdk::interchain_txs::helpers::get_port_id;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, UserChainRegistrationInput};
 use crate::state::{
-    user_chain_registrations, Chain, Config, UserChainRegistration, CONFIG,
-    ICA_PORT_ID_TO_CHAIN_ID, SUPPORTED_CHAINS, USER_BALANCES,
+    user_chain_registrations, Chain, UserChainRegistration, CONFIG, ICA_PORT_ID_TO_CHAIN_ID,
+    NEXT_REPLY_ID, REPLY_ID_TO_USER_CHAIN_REGISTRATION, SUPPORTED_CHAINS,
 };
 
 //const STAKING_STORE_KEY: &str = "staking";
@@ -17,13 +17,12 @@ use crate::state::{
 
 #[entry_point]
 pub fn execute(
-    deps: DepsMut,
+    deps: DepsMut<NeutronQuery>,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response<NeutronMsg>, ContractError> {
     match msg {
-        ExecuteMsg::UpdateConfig { config } => update_config(deps, info, config),
         ExecuteMsg::AddSupportedChain {
             chain_id,
             connection_id,
@@ -52,7 +51,7 @@ pub fn update_config(
 }
 
 pub fn add_supported_chain(
-    deps: DepsMut,
+    deps: DepsMut<NeutronQuery>,
     env: Env,
     info: MessageInfo,
     chain_id: String,
@@ -106,11 +105,15 @@ pub fn add_supported_chain(
 }
 
 pub fn register_user(
-    deps: DepsMut,
+    deps: DepsMut<NeutronQuery>,
     info: MessageInfo,
     registrations: Vec<UserChainRegistrationInput>,
 ) -> Result<Response<NeutronMsg>, ContractError> {
-    let mut icq_msgs: Vec<NeutronMsg> = Vec::new();
+    let mut icq_msgs: Vec<SubMsg<NeutronMsg>> = Vec::new();
+
+    let mut next_reply_id = NEXT_REPLY_ID.load(deps.storage).unwrap();
+    deps.api
+        .debug(format!("WASMDEBUG: next_reply_id: {}", next_reply_id).as_str());
     for registration in registrations {
         let chain = SUPPORTED_CHAINS.load(deps.storage, registration.clone().chain_id)?;
 
@@ -136,6 +139,14 @@ pub fn register_user(
             });
         }
 
+        let user_chain_reg = UserChainRegistration {
+            chain_id: chain_id.clone(),
+            local_address: info.clone().sender,
+            remote_address: remote_address.clone(),
+            validators: registration.clone().validators,
+            delegator_delegations_reply_id: next_reply_id,
+            delegator_delegations_icq_id: None, // This will be updated in the reply
+        };
         user_chain_registrations().save(
             deps.storage,
             (
@@ -143,13 +154,19 @@ pub fn register_user(
                 chain_id.clone(),
                 remote_address.clone(),
             ),
-            &UserChainRegistration {
-                chain_id: chain_id.clone(),
-                local_address: info.clone().sender,
-                remote_address: remote_address.clone(),
-                validators: registration.clone().validators,
-            },
+            &user_chain_reg,
         )?;
+        REPLY_ID_TO_USER_CHAIN_REGISTRATION
+            .save(
+                deps.storage,
+                next_reply_id,
+                &(
+                    user_chain_reg.local_address,
+                    user_chain_reg.chain_id,
+                    user_chain_reg.remote_address,
+                ),
+            )
+            .unwrap();
 
         // ICQ stuff:
         let icq_msg = new_register_delegator_delegations_query_msg(
@@ -159,7 +176,11 @@ pub fn register_user(
             5,
         )
         .unwrap();
-        icq_msgs.push(icq_msg);
+
+        let sub_msg = SubMsg::reply_on_success(icq_msg, next_reply_id);
+        icq_msgs.push(sub_msg);
+
+        next_reply_id += 1;
 
         /*let converted_addr_bytes = decode_and_convert(&remote_address).unwrap();
         let delegation_key = create_delegation_key(converted_addr_bytes).unwrap();
@@ -177,9 +198,11 @@ pub fn register_user(
         icq_msgs.push(staking_delegation_icq_msg);*/
     }
 
+    NEXT_REPLY_ID.save(deps.storage, &next_reply_id).unwrap();
+
     Ok(Response::new()
         .add_attribute("action", "register_user")
-        .add_messages(icq_msgs))
+        .add_submessages(icq_msgs))
 }
 
 /*fn create_delegation_key(delegator: AddressBytes) -> StdResult<AddressBytes> {
@@ -279,16 +302,17 @@ mod tests {
 
     mod test_add_supported_chain {
         use cosmwasm_std::coins;
-        use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+        use cosmwasm_std::testing::{mock_env, mock_info};
 
         use crate::execute::execute;
         use crate::instantiate::instantiate;
         use crate::msg::{ExecuteMsg, InstantiateMsg};
         use crate::state::SUPPORTED_CHAINS;
+        use crate::testing::helpers::mock_neutron_dependencies;
 
         #[test]
         fn test_add_supported_chain() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_neutron_dependencies();
             let info = mock_info("creator", &coins(1000000, "untrn"));
 
             instantiate(
@@ -328,17 +352,18 @@ mod tests {
     }
 
     mod test_register_user {
-        use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info, MockApi};
+        use cosmwasm_std::testing::{mock_env, mock_info, MockApi};
         use cosmwasm_std::{coins, Order, StdResult};
 
         use crate::execute::execute;
         use crate::instantiate::instantiate;
         use crate::msg::{ExecuteMsg, InstantiateMsg};
-        use crate::state::user_chain_registrations;
+        use crate::state::{user_chain_registrations, NEXT_REPLY_ID};
+        use crate::testing::helpers::mock_neutron_dependencies;
 
         #[test]
         fn test_register_user() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_neutron_dependencies();
             let creator_info = mock_info("creator", &coins(1000000, "untrn"));
 
             instantiate(
@@ -417,6 +442,9 @@ mod tests {
                 user_registrations_by_local_address.get(0).unwrap().1,
                 registration.1
             );
+
+            let next_reply_id = NEXT_REPLY_ID.load(deps.as_ref().storage).unwrap();
+            assert_eq!(next_reply_id, 2);
         }
     }
 

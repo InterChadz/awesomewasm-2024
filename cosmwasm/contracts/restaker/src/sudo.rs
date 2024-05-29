@@ -1,7 +1,9 @@
-use crate::state::{ICA_PORT_ID_TO_CHAIN_ID, SUPPORTED_CHAINS};
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{entry_point, Addr, DepsMut, Env, Response, StdError, StdResult};
+use neutron_sdk::bindings::query::NeutronQuery;
 use neutron_sdk::sudo::msg::{RequestPacket, SudoMsg};
+
+use crate::state::{ICA_PORT_ID_TO_CHAIN_ID, SUPPORTED_CHAINS};
 
 #[cw_serde]
 struct OpenAckVersion {
@@ -14,7 +16,7 @@ struct OpenAckVersion {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn sudo(deps: DepsMut, env: Env, msg: SudoMsg) -> StdResult<Response> {
+pub fn sudo(deps: DepsMut<NeutronQuery>, env: Env, msg: SudoMsg) -> StdResult<Response> {
     match msg {
         SudoMsg::OpenAck {
             port_id,
@@ -35,7 +37,7 @@ pub fn sudo(deps: DepsMut, env: Env, msg: SudoMsg) -> StdResult<Response> {
 }
 
 fn sudo_open_ack(
-    deps: DepsMut,
+    deps: DepsMut<NeutronQuery>,
     _env: Env,
     port_id: String,
     _channel_id: String,
@@ -76,7 +78,11 @@ fn sudo_open_ack(
     Err(StdError::generic_err("Can't parse counterparty_version"))
 }
 
-fn sudo_error(deps: DepsMut, request: RequestPacket, details: String) -> StdResult<Response> {
+fn sudo_error(
+    deps: DepsMut<NeutronQuery>,
+    request: RequestPacket,
+    details: String,
+) -> StdResult<Response> {
     deps.api
         .debug(format!("WASMDEBUG: sudo error: {}", details).as_str());
     deps.api
@@ -100,18 +106,20 @@ fn sudo_error(deps: DepsMut, request: RequestPacket, details: String) -> StdResu
 #[cfg(test)]
 mod tests {
     mod test_sudo_open_ack {
+        use cosmwasm_std::testing::{mock_env, mock_info};
+        use cosmwasm_std::{coins, Addr};
+        use neutron_sdk::sudo::msg::SudoMsg;
+
         use crate::execute::execute;
         use crate::instantiate::instantiate;
         use crate::msg::{ExecuteMsg, InstantiateMsg};
         use crate::state::SUPPORTED_CHAINS;
         use crate::sudo::sudo;
-        use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-        use cosmwasm_std::{coins, Addr};
-        use neutron_sdk::sudo::msg::SudoMsg;
+        use crate::testing::helpers::mock_neutron_dependencies;
 
         #[test]
         fn test_sudo_open_ack() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_neutron_dependencies();
             let info = mock_info("creator", &coins(1000000, "untrn"));
 
             instantiate(

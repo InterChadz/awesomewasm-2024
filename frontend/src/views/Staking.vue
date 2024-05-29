@@ -1,14 +1,14 @@
 <template>
   <div class="staking-page">
-      <div class="balances d-flex ">
-        <div class="col-md-3 d-flex">
-          <ToppedUpBalanceComponent :balance="toppedUpBalance" />
-        </div>
-        <div class="col-md-6 d-flex"> </div>
-        <div class="col-md-3 d-flex ">
-          <WalletBalanceComponent :balance="walletBalance" />
-        </div>
+    <div class="balances d-flex ">
+      <div class="col-md-3 d-flex">
+        <ToppedUpBalanceComponent :balance="toppedUpBalance" />
       </div>
+      <div class="col-md-6 d-flex"> </div>
+      <div class="col-md-3 d-flex ">
+        <WalletBalanceComponent :balance="walletBalance" />
+      </div>
+    </div>
 
     <div class="chain-components">
       <ChainComponent
@@ -26,6 +26,7 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import ToppedUpBalanceComponent from '@/components/ToppedUpBalanceComponent.vue';
 import WalletBalanceComponent from '@/components/WalletBalanceComponent.vue';
 import ChainComponent from '@/components/ChainComponent.vue';
@@ -37,10 +38,17 @@ export default {
     WalletBalanceComponent,
     ChainComponent
   },
+  computed: {
+    ...mapGetters(['userBalance', 'userContractBalance']),
+    walletBalance() {
+      return this.userBalance;
+    },
+    toppedUpBalance() {
+      return this.userContractBalance; 
+    }
+  },
   data() {
     return {
-      toppedUpBalance: 1000, // Example data, replace with actual data
-      walletBalance: 2000, // Example data, replace with actual data
       chains: [
         {
           name: 'Cosmos Hub',
@@ -84,5 +92,4 @@ export default {
 
 <style lang="scss" scoped>
 @import "@/assets/style.scss";
-
 </style>

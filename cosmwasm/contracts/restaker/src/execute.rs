@@ -1,4 +1,5 @@
-use cosmwasm_std::{coins, DepsMut, entry_point, Env, MessageInfo, Response};
+use cosmwasm_std::{coins, entry_point, DepsMut, Env, MessageInfo, Response, SubMsg};
+use cw0::must_pay;
 use interchain_queries::v047::register_queries::new_register_delegator_delegations_query_msg;
 use neutron_sdk::bindings::msg::NeutronMsg;
 use neutron_sdk::bindings::query::NeutronQuery;
@@ -8,8 +9,9 @@ use neutron_sdk::interchain_txs::helpers::get_port_id;
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, UserChainRegistrationInput};
 use crate::state::{
-    user_chain_registrations, Chain, UserChainRegistration, CONFIG, ICA_PORT_ID_TO_CHAIN_ID,
-    NEXT_REPLY_ID, REPLY_ID_TO_USER_CHAIN_REGISTRATION, SUPPORTED_CHAINS,
+    user_chain_registrations, Chain, Config, UserChainRegistration, CONFIG,
+    ICA_PORT_ID_TO_CHAIN_ID, NEXT_REPLY_ID, REPLY_ID_TO_USER_CHAIN_REGISTRATION, SUPPORTED_CHAINS,
+    USER_BALANCES,
 };
 
 //const STAKING_STORE_KEY: &str = "staking";
@@ -23,6 +25,7 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response<NeutronMsg>, ContractError> {
     match msg {
+        ExecuteMsg::UpdateConfig { config } => update_config(deps, info, config),
         ExecuteMsg::AddSupportedChain {
             chain_id,
             connection_id,
@@ -34,7 +37,7 @@ pub fn execute(
 }
 
 pub fn update_config(
-    deps: DepsMut,
+    deps: DepsMut<NeutronQuery>,
     info: MessageInfo,
     new_config: Config,
 ) -> Result<Response<NeutronMsg>, ContractError> {
@@ -213,7 +216,7 @@ pub fn register_user(
 }*/
 
 pub fn topup_user_balance(
-    _deps: DepsMut,
+    _deps: DepsMut<NeutronQuery>,
     _env: Env,
     info: MessageInfo,
 ) -> Result<Response<NeutronMsg>, ContractError> {
@@ -232,7 +235,7 @@ pub fn topup_user_balance(
 }
 
 pub fn autocompound(
-    deps: DepsMut,
+    deps: DepsMut<NeutronQuery>,
     _env: Env,
     _info: MessageInfo,
 ) -> Result<Response<NeutronMsg>, ContractError> {
@@ -258,17 +261,18 @@ pub fn autocompound(
 #[cfg(test)]
 mod tests {
     mod test_update_config {
-        use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+        use cosmwasm_std::testing::{mock_env, mock_info};
         use cosmwasm_std::{coins, Addr};
 
         use crate::execute::execute;
         use crate::instantiate::instantiate;
         use crate::msg::{ExecuteMsg, InstantiateMsg};
         use crate::state::CONFIG;
+        use crate::testing::helpers::mock_neutron_dependencies;
 
         #[test]
         fn test_update_config() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_neutron_dependencies();
             let info = mock_info("creator", &coins(1000000, "untrn"));
 
             instantiate(
@@ -452,12 +456,13 @@ mod tests {
         use crate::execute::execute;
         use crate::msg::ExecuteMsg;
         use crate::state::USER_BALANCES;
-        use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+        use crate::testing::helpers::mock_neutron_dependencies;
+        use cosmwasm_std::testing::{mock_env, mock_info};
         use cosmwasm_std::{coins, Uint128};
 
         #[test]
         fn test_topup_user_balance() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_neutron_dependencies();
             let info = mock_info("creator", &coins(1000000, "untrn"));
 
             let res = execute(

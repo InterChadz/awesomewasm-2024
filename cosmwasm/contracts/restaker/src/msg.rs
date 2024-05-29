@@ -34,13 +34,13 @@ pub enum QueryMsg {
         limit: Option<u64>,
         start_after: Option<String>,
     },
-    #[returns(UserRegistrationsResponse)]
+    #[returns(GetGetUserRegistrationsResponse)]
     UserRegistrations {
         address: String,
         limit: Option<u64>,
         start_after: Option<String>,
     },
-    #[returns(CalculatedRewardResponse)]
+    #[returns(GetCalculatedRewardResponse)]
     CalculateReward {
         address: String,
         chain_id: String,
@@ -79,12 +79,12 @@ pub struct UserChainResponse {
 }
 
 #[cw_serde]
-pub struct UserRegistrationsResponse {
+pub struct GetUserRegistrationsResponse {
     pub user_chain_registrations: Vec<UserChainResponse>,
 }
 
 #[cw_serde]
-pub struct CalculatedRewardResponse {
+pub struct GetCalculatedRewardResponse {
     pub total_delegation: u128,
     pub reward: u128,
 }

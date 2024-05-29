@@ -12,4 +12,3 @@ pub mod sudo;
 #[allow(clippy::unwrap_used)]
 #[cfg(test)]
 mod testing;
-

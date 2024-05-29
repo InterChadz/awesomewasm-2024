@@ -7,7 +7,7 @@
 ![logo](logo.png)
 </div>
 
-💸 Given the recent news about Yieldmos being taken down, there is a need for a new restaking solution. InterChadz uses a restaking contract deployed on Neutron where users pay a fee to set up automated stake compounding.
+💸 Given the recent news about Yieldmos being taken down, there is a need for a new restaking solution. InterChadz uses a restaking contract deployed on Neutron where users pay a fee to set up automated compounding of staking rewards.
 
 ⚙️ Built with interchian accounts + authz + Neutron Cron.
 
@@ -53,12 +53,6 @@ This function triggers the autocompound feature, compounding all pending rewards
 ### TopupUserBalance
 
 TODO
-
-## Hackathon tracks
-
-### Neutron Track - Free-form project track
-
-### Neutron + Abstract Bonus Bounty
 
 ## Links
 

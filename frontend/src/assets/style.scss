@@ -163,8 +163,9 @@ p:last-child, ul:last-child {
   }
 
   .icon {
-    height: 12px; /* Reduced to 50% of the original 24px */
-    width: 12px;
+    height: 24px;
+    width: 24px;
+    margin-right: 2rem;
   }
 
   a {

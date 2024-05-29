@@ -257,19 +257,20 @@ pub fn autocompound(
         .map(|item| item.unwrap())
         .collect::<Vec<_>>();
 
-    let mut submsgs: Vec<SubMsg<NeutronMsg>>;
+    let mut msgs: Vec<NeutronMsg> = vec![];
+
+    // TODO: We have to paginate that, and do it in many tx calls so we need a state to keep track of the last height we did this
 
     for ((src_addr, dst_chain_id, dst_addr), registration) in registrations {
-        // Autocompound for each registration
         let balance = USER_BALANCES
             .load(deps.storage, src_addr)
             .unwrap_or_default();
 
-        // TODO: Should we error or continue here?
         let supported_chain = SUPPORTED_CHAINS
-            .load(deps.storage, dst_chain_id)
+            .load(deps.storage, dst_chain_id.clone())
             .map_err(|_| StdError::not_found("Chain not found"))?;
 
+        // Since a user could have staking position with more than one validator, we iterate over all of them
         for validator in registration.validators {
             // Only if the given user has enough topped up balance to cover protocol fees
             if balance.u128() < supported_chain.autocompound_cost {
@@ -281,10 +282,10 @@ pub fn autocompound(
             // Does this user has any rewards to compound?
             let calculate_reward = query_calculate_reward(
                 deps.as_ref(),
-                env,
+                env.clone(),
                 registration.local_address.to_string(),
-                registration.chain_id,
-                registration.remote_address,
+                dst_chain_id.clone(),
+                dst_addr.clone(),
             )?;
 
             // If there are not enough rewards to compound, continue
@@ -293,33 +294,30 @@ pub fn autocompound(
                 continue;
             }
 
-            // Here we know that user can autocompound. Get the delegate submsg accordingly.
-
-            let submsg = get_delegate_submsg(
-                deps,
-                env,
-                supported_chain.ica_id,
-                supported_chain.ica_port_id,
-                supported_chain.connection_id,
-                registration.remote_address,
+            // Here we know that user can autocompound.
+            // Get the delegate submsg accordingly.
+            let cosmos_msg = get_delegate_submsg(
+                supported_chain.clone().ica_id,
+                supported_chain.clone().connection_id,
+                dst_addr.clone(),
                 validator, // TODO: We should iter validators, querying the cumulated rewards foreach of them
                 calculate_reward.reward,
-                supported_chain.denom,
+                supported_chain.clone().denom,
                 None, // TODO: timeout by Config struct, or default defined on helpers.rs?
             )?;
-            submsgs.extend(submsg);
+            msgs.push(cosmos_msg);
         }
     }
 
-    // Declare a response
-    let response = Response::new().add_attribute("action", "autocompound");
-
-    // Append submsgs only if there are any
-    if !submsgs.is_empty() {
-        response.add_submessages(submsgs);
+    // Return a response only if there are any msgs to send, otherwise throw a ContractError.
+    // TODO: This should be adjusted as soon as we paginate the autocompound process
+    if !msgs.is_empty() {
+        Ok(Response::new()
+            .add_attribute("action", "autocompound")
+            .add_messages(msgs))
+    } else {
+        Err(ContractError::NoRewardsToAutocompound {})
     }
-
-    Ok(response)
 }
 
 #[cfg(test)]

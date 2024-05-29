@@ -28,4 +28,7 @@ pub enum ContractError {
         address: String,
         remote_address: String,
     },
+
+    #[error("No rewards to autocompound")]
+    NoRewardsToAutocompound {},
 }

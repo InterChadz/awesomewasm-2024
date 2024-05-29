@@ -10,14 +10,16 @@ use restaker_utils::types::DelegatorStartingInfo as UtilsDelegatorStartingInfo;
 use restaker_utils::types::ValidatorHistoricalRewards as UtilsValidatorHistoricalRewards;
 
 use crate::icq::reconstruct::UserQueryData;
-use crate::msg::{ChainResponse, GetCalculatedRewardResponse, GetUserRegistrationsResponse, QueryMsg, RewardResponse, SupportedChainsResponse, UserChainResponse};
-use crate::state::{Chain, SUPPORTED_CHAINS, user_chain_registrations};
+
+use crate::msg::{ChainResponse, ConfigResponse, GetCalculatedRewardResponse, GetUserRegistrationsResponse, QueryMsg, RewardResponse, SupportedChainsResponse, UserBalanceResponse, UserChainResponse};
+use crate::state::{user_chain_registrations, Chain, CONFIG, SUPPORTED_CHAINS, USER_BALANCES};
 
 pub const DEFAULT_LIMIT: u64 = 30;
 
 #[entry_point]
 pub fn query(deps: Deps<NeutronQuery>, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
+        QueryMsg::Config {} => to_json_binary(&query_config(deps)?),
         QueryMsg::SupportedChains { limit, start_after } => {
             to_json_binary(&query_supported_chains(deps, limit, start_after)?)
         }
@@ -43,7 +45,13 @@ pub fn query(deps: Deps<NeutronQuery>, env: Env, msg: QueryMsg) -> StdResult<Bin
             remote_address,
         )?),
         QueryMsg::UserQuery { address, chain_id, remote_address } => to_json_binary(&query_user_query(deps, address, chain_id, remote_address)?),
+        QueryMsg::UserBalance { address } => to_json_binary(&query_user_balance(deps, address)?),
     }
+}
+
+pub fn query_config(deps: Deps<NeutronQuery>) -> StdResult<ConfigResponse> {
+    let config = CONFIG.load(deps.storage)?;
+    Ok(ConfigResponse { config })
 }
 
 pub fn query_supported_chains(
@@ -92,7 +100,7 @@ pub fn query_user_registrations(
             let user_chain_registration = item.unwrap().1;
             Some(UserChainResponse {
                 chain_id: user_chain_registration.chain_id,
-                address: user_chain_registration.remote_address,
+                remote_address: user_chain_registration.remote_address,
                 validators: user_chain_registration.validators.clone(),
                 delegator_delegations_reply_id: user_chain_registration
                     .delegator_delegations_reply_id,
@@ -202,6 +210,21 @@ pub fn query_user_query(
         ).as_str());
 
     Ok(user_query_data)
+}
+
+pub fn query_user_balance(
+    deps: Deps<NeutronQuery>,
+    address: String,
+) -> StdResult<UserBalanceResponse> {
+    let local_address = deps.api.addr_validate(&address)?;
+
+    let balance = USER_BALANCES
+        .may_load(deps.storage, local_address)
+        .map(|balance| balance.unwrap_or_default())?;
+
+    Ok(UserBalanceResponse {
+        balance: balance.into(),
+    })
 }
 
 #[cfg(test)]
@@ -325,7 +348,7 @@ mod tests {
             assert_eq!(res.user_chain_registrations.len(), 2);
         }
     }
-    
+
     mod test_calculate_rewards {
         use cosmwasm_std::Coin;
         use cosmwasm_std::testing::mock_env;
@@ -413,10 +436,10 @@ mod tests {
                     }
                 ],
             };
-            
+
             let rewards = calculate_rewards(mock_env(), user_query_data).unwrap();
             assert_eq!(rewards.len(), 1);
         }
     }
-    
+
 }

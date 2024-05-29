@@ -20,6 +20,7 @@ base64 = { workspace = true}
 bech32 = { workspace = true }
 byteorder = { workspace = true }
 restaker-utils = { path = "../../packages/restaker-utils", version = "0.1.0" }
+cw0 = { workspace = true }
 
 [dev-dependencies]
 cw-multi-test = { workspace = true }

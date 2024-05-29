@@ -1,32 +1,37 @@
 <template>
   <div class="staking-page">
-    <header class="header">
-      <div class="balances d-flex justify-content-between align-items-stretch">
-        <div class="col-md-6">
-          <ToppedUpBalanceComponent title="Topped Up Balance" :balance="toppedUpBalance" />
+    <div>
+      <div class="balances d-flex">
+        <div class="col-md-4 d-flex">
+          <ToppedUpBalanceComponent :balance="toppedUpBalance" />
         </div>
-        <div class="col-md-6 d-flex justify-content-end">
-          <WalletBalanceComponent title="Wallet Balance" :balance="walletBalance" />
+        <div class="col-md-4 d-flex"></div>
+        <div class="col-md-4 d-flex">
+          <WalletBalanceComponent :balance="walletBalance" />
         </div>
       </div>
-    </header>
 
-    <div class="chain-components">
-      <ChainComponent
-        v-for="chain in chains"
-        :key="chain.name"
-        :chainName="chain.name"
-        :chainImage="chain.image"
-        :costToAutocompound="chain.costToAutocompound"
-        :lastAutocompound="chain.lastAutocompound"
-        :stakedValidators="chain.stakedValidators"
-        :pendingRewards="chain.pendingRewards"
-      />
+      <div class="chain-components">
+        <ChainComponent
+          v-for="chain in filteredChains"
+          :key="chain.chainId"
+          :chainName="chain.name"
+          :chainId="chain.chainId"
+          :chainImage="chain.image"
+          :costToAutocompound="chain.costToAutocompound"
+          :lastAutocompound="chain.lastAutocompound"
+          :stakedValidators="chain.stakedValidators"
+          :totalStaked="chain.totalStaked"
+          :pendingRewards="chain.pendingRewards"
+          :isActive="chain.isActive"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import ToppedUpBalanceComponent from '@/components/ToppedUpBalanceComponent.vue';
 import WalletBalanceComponent from '@/components/WalletBalanceComponent.vue';
 import ChainComponent from '@/components/ChainComponent.vue';
@@ -38,82 +43,100 @@ export default {
     WalletBalanceComponent,
     ChainComponent
   },
+  computed: {
+    ...mapGetters(['userBalance', 'userContractBalance', 'userRegistrations', 'userRewards', 'appSupportedChains']),
+    walletBalance() {
+      return this.userBalance;
+    },
+    toppedUpBalance() {
+      return this.userContractBalance;
+    },
+    filteredChains() {
+      const supportedChainIds = this.appSupportedChains.map(chain => chain.chain_id);
+      console.log("Supported Chain IDs:", supportedChainIds);
+      console.log("User Registrations:", this.userRegistrations);
+
+      const hardcodedChains = this.chains.reduce((acc, chain) => {
+        acc[chain.chainId] = chain;
+        return acc;
+      }, {});
+
+      return this.appSupportedChains.map(supportedChain => {
+        const chain = hardcodedChains[supportedChain.chain_id] || {
+          name: supportedChain.chain_id,
+          chainId: supportedChain.chain_id,
+          image: require('@/assets/chains/placeholder.svg'),
+          costToAutocompound: '',
+          lastAutocompound: ''
+        };
+        
+        const registration = this.userRegistrations.find(reg => reg.chain_id === chain.chainId);
+        console.log(`Chain ${chain.chainId} registration:`, registration);
+
+        const reward = this.userRewards.find(reward => reward.chain_id === chain.chainId);
+        console.log(`Chain ${chain.chainId} reward:`, reward);
+
+        return {
+          ...chain,
+          stakedValidators: registration ? registration.validators.map(validator => ({
+            address: validator,
+            amount: 0
+          })) : [],
+          totalStaked: reward ? reward.calculated_reward.total_delegation : 0,
+          pendingRewards: reward ? reward.calculated_reward.reward : 0,
+          isActive: !!registration
+        };
+      });
+    }
+  },
   data() {
     return {
-      toppedUpBalance: 1000, // Example data, replace with actual data
-      walletBalance: 2000, // Example data, replace with actual data
       chains: [
         {
-          name: 'Cosmos Hub',
-          image: require('@/assets/chains/cosmos.svg'), 
-          costToAutocompound: '0.1 ATOM',
-          lastAutocompound: '1 hour ago',
-          stakedValidators: [
-            { name: 'Validator 1', amount: 100 },
-            { name: 'Validator 2', amount: 150 },
-            { name: 'Validator 3', amount: 200 },
-            { name: 'Validator 4', amount: 250 }
-          ],
-          pendingRewards: 50
-        },
-        {
           name: 'Osmosis',
+          chainId: 'test-0',
           image: require('@/assets/chains/osmosis.svg'),
           costToAutocompound: '0.05 OSMO',
-          lastAutocompound: '2 hours ago',
-          stakedValidators: [
-            { name: 'Validator 1', amount: 100 },
-            { name: 'Validator 2', amount: 150 }
-          ],
-          pendingRewards: 75
+          lastAutocompound: '2 hours ago'
         },
         {
           name: 'Neutron',
+          chainId: 'test-1',
           image: require('@/assets/chains/neutron.png'),
           costToAutocompound: '0.01 NTRN',
-          lastAutocompound: '3 hours ago',
-          stakedValidators: [
-            { name: 'Validator 1', amount: 100 }
-          ],
-          pendingRewards: 25
+          lastAutocompound: '3 hours ago'
+        },
+        {
+          name: 'Cosmos Hub',
+          chainId: 'test-2',
+          image: require('@/assets/chains/cosmos.svg'),
+          costToAutocompound: '0.1 ATOM',
+          lastAutocompound: '1 hour ago'
         }
       ]
     };
+  },
+  methods: {
+    async fetchData() {
+      this.error = false;
+      try {
+        await this.$store.dispatch('fetchAppSupportedChains');
+        await this.$store.dispatch('fetchUserData');
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    },
+    retryFetchData() {
+      this.retryCount = 0;
+      this.fetchData();
+    }
+  },
+  created() {
+    this.fetchData();
   }
 };
 </script>
 
 <style lang="scss" scoped>
 @import "@/assets/style.scss";
-
-.header {
-  .balances {
-    display: flex;
-    justify-content: space-between;
-    align-items: stretch;
-
-    .col-md-6 {
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-    }
-
-    .col-md-6:last-child {
-      justify-content: flex-end;
-    }
-  }
-}
-
-.balance-component {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f5f5f5;
-  padding: 0.5rem 1rem;
-  border-radius: 10px;
-  text-align: center;
-  margin: 0.5rem;
-  min-width: 100px;
-  flex-grow: 1;
-}
 </style>

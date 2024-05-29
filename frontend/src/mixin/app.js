@@ -15,19 +15,18 @@ const mxApp = {
     ...mapActions([
       'initUser',
       'fetchAppConfig',
-      'fetchAppState',
       'fetchUserData',
+      'fetchAppSupportedChains'
     ]),
-
-    // TODO: fetchUser()
 
     async fetchOnce() {
       await this.initUser();
 
-      // await this.fetchAppConfig();
-      // await this.fetchAppState();
+      await this.fetchAppConfig();
 
-      // Init signer and querier
+      await this.fetchAppSupportedChains();
+
+      // Init signer and querier for the connected user, if any
       if (this.userAddress) {
         await this.fetchUserData();
       }

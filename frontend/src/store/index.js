@@ -19,10 +19,15 @@ export default createStore({
       querier: null,
       address: null,
       balance: null,
+      contractBalance: null,
+      registrations: [],
+      rewards: null
     },
 
-    appConfig: null,
-    appState: null,
+    app: {
+      config: null,
+      supportedChains: [],
+    }
   },
 
   getters: {
@@ -38,17 +43,29 @@ export default createStore({
       return state.user.address;
     },
 
+    userRegistrations(state) {
+      return state.user.registrations;
+    },
+
+    userRewards(state) {
+      return state.user.rewards;
+    },
+
     userBalance(state) {
       return state.user.balance;
     },
 
-    appConfig(state) {
-      return state.appConfig;
+    userContractBalance(state) {
+      return state.user.contractBalance;
     },
 
-    appState(state) {
-      return state.appState;
+    appConfig(state) {
+      return state.app.config;
     },
+
+    appSupportedChains(state) {
+      return state.app.supportedChains
+    }
   },
 
   mutations: {
@@ -68,14 +85,26 @@ export default createStore({
       state.user.balance = balance;
     },
 
+    setUserContractBalance(state, contractBalance) {
+      state.user.contractBalance = contractBalance;
+    },
+
+    setUserRegistrations(state, registrations) {
+      state.user.registrations = registrations;
+    },
+
+    setUserRewards(state, rewards) {
+      state.user.rewards = rewards;
+    },
+
     // App
 
     setAppConfig(state, appConfig) {
-      state.appConfig = appConfig;
+      state.app.config = appConfig;
     },
 
-    setAppState(state, appState) {
-      state.appState = appState;
+    setAppSupportedChains(state, appConfig) {
+      state.app.supportedChains = appConfig;
     },
   },
 
@@ -132,8 +161,70 @@ export default createStore({
         process.env.VUE_APP_FEE_DENOM
       );
       commit("setUserBalance", mxChainUtils.methods.displayAmount(Number(balance.amount)));
+
+      // #[returns(GetUserRegistrationsResponse)]
+      // UserRegistrations {
+      //     address: String,
+      //     limit: Option<u64>,
+      //     start_after: Option<String>,
+      // },
+      const contractBalance = await state.user.querier.queryContractSmart(
+        process.env.VUE_APP_CONTRACT,
+        {
+          user_balance: {
+            address: state.user.address
+          }
+        }
+      );
+      commit("setUserContractBalance", contractBalance.balance);
+
+      // #[returns(GetUserRegistrationsResponse)]
+      // UserRegistrations {
+      //     address: String,
+      //     limit: Option<u64>,
+      //     start_after: Option<String>,
+      // },
+      const registrations = await state.user.querier.queryContractSmart(
+        process.env.VUE_APP_CONTRACT,
+        {
+          user_registrations: {
+            address: state.user.address
+          }
+        }
+      );
+      commit("setUserRegistrations", registrations.user_chain_registrations);
+
+      // Start iterating registrations to get rewards and allocated amount
+      let userRewards = [];
+      for (const registration of registrations.user_chain_registrations) {
+        // #[returns(GetCalculatedRewardResponse)]
+        // CalculateReward {
+        //     address: String,
+        //     chain_id: String,
+        //     remote_address: String,
+        // },
+        const calculateReward = await state.user.querier.queryContractSmart(
+          process.env.VUE_APP_CONTRACT,
+          {
+            calculate_reward: {
+              address: state.user.address,
+              chain_id: registration.chain_id,
+              remote_address: registration.remote_address
+            }
+          }
+        );
+        userRewards.push({
+          chain_id: registration.chain_id,
+          calculated_reward: calculateReward
+        });
+      }
+
+
+      commit("setUserRewards", userRewards);
     },
 
+    // #[returns(ConfigResponse)]
+    // Config {},
     async fetchAppConfig({state, commit}) {
       if (!state.user.querier) {
         console.error("Querier is not initialized");
@@ -143,23 +234,29 @@ export default createStore({
       // Use CosmWasmClient for the query
       const data = await state.user.querier.queryContractSmart(
         process.env.VUE_APP_CONTRACT,
-        {app_config: {}}
+        {config: {}}
       );
       commit("setAppConfig", data.config);
     },
 
-    async fetchAppState({state, commit}) {
+    // #[returns(SupportedChainsResponse)]
+    // SupportedChains {
+    //     limit: Option<u64>,
+    //     start_after: Option<String>,
+    // },
+    async fetchAppSupportedChains({state, commit}) {
       if (!state.user.querier) {
         console.error("Querier is not initialized");
         return;
       }
 
+      // Use CosmWasmClient for the query
       const data = await state.user.querier.queryContractSmart(
         process.env.VUE_APP_CONTRACT,
-        {app_state: {}}
+        {supported_chains: {}}
       );
-      commit("setAppState", data.state);
-    }
+      commit("setAppSupportedChains", data.chains);
+    },
   },
 
   modules: {},

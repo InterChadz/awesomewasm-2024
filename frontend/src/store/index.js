@@ -19,13 +19,13 @@ export default createStore({
       querier: null,
       address: null,
       balance: null,
+      registrations: [],
+      rewards: null
     },
 
     app: {
       config: null,
       supportedChains: [],
-      userRegistrations: [],
-      calculateReward: null
     }
   },
 
@@ -40,6 +40,14 @@ export default createStore({
 
     userAddress(state) {
       return state.user.address;
+    },
+
+    userRegistrations(state) {
+      return state.user.registrations;
+    },
+
+    userRewards(state) {
+      return state.user.rewards;
     },
 
     userBalance(state) {
@@ -70,6 +78,14 @@ export default createStore({
 
     setUserBalance(state, balance) {
       state.user.balance = balance;
+    },
+
+    setUserRegistrations(state, registrations) {
+      state.user.registrations = registrations;
+    },
+
+    setUserRewards(state, rewards) {
+      state.user.rewards = rewards;
     },
 
     // App
@@ -136,8 +152,54 @@ export default createStore({
         process.env.VUE_APP_FEE_DENOM
       );
       commit("setUserBalance", mxChainUtils.methods.displayAmount(Number(balance.amount)));
+
+      // #[returns(GetUserRegistrationsResponse)]
+      // UserRegistrations {
+      //     address: String,
+      //     limit: Option<u64>,
+      //     start_after: Option<String>,
+      // },
+      const registrations = await state.user.querier.queryContractSmart(
+        process.env.VUE_APP_CONTRACT,
+        {
+          user_registrations: {
+            address: state.user.address
+          }
+        }
+      );
+      commit("setUserRegistrations", registrations.user_chain_registrations);
+
+      // Start iterating registrations to get rewards and allocated amount
+      let userRewards = [];
+      for (const registration of registrations.user_chain_registrations) {
+        // #[returns(GetCalculatedRewardResponse)]
+        // CalculateReward {
+        //     address: String,
+        //     chain_id: String,
+        //     remote_address: String,
+        // },
+        const calculateReward = await state.user.querier.queryContractSmart(
+          process.env.VUE_APP_CONTRACT,
+          {
+            calculate_reward: {
+              address: state.user.address,
+              chain_id: registration.chain_id,
+              remote_address: registration.remote_address
+            }
+          }
+        );
+        userRewards.push({
+          chain_id: registration.chain_id,
+          calculated_reward: calculateReward
+        });
+      }
+
+
+      commit("setUserRewards", userRewards);
     },
 
+    // #[returns(ConfigResponse)]
+    // Config {},
     async fetchAppConfig({state, commit}) {
       if (!state.user.querier) {
         console.error("Querier is not initialized");
@@ -152,6 +214,11 @@ export default createStore({
       commit("setAppConfig", data.config);
     },
 
+    // #[returns(SupportedChainsResponse)]
+    // SupportedChains {
+    //     limit: Option<u64>,
+    //     start_after: Option<String>,
+    // },
     async fetchAppSupportedChains({state, commit}) {
       if (!state.user.querier) {
         console.error("Querier is not initialized");
@@ -165,34 +232,6 @@ export default createStore({
       );
       commit("setAppSupportedChains", data.chains);
     },
-
-    async fetchAppUserRegistrations({state, commit}) {
-      if (!state.user.querier) {
-        console.error("Querier is not initialized");
-        return;
-      }
-
-      // Use CosmWasmClient for the query
-      const data = await state.user.querier.queryContractSmart(
-        process.env.VUE_APP_CONTRACT,
-        {user_registrations: {}}
-      );
-      commit("setAppUserRegistrations", data.registrations);
-    },
-
-    async fetchAppCalculateReward({state, commit}) {
-      if (!state.user.querier) {
-        console.error("Querier is not initialized");
-        return;
-      }
-
-      // Use CosmWasmClient for the query
-      const data = await state.user.querier.queryContractSmart(
-        process.env.VUE_APP_CONTRACT,
-        {calculate_reward: {}}
-      );
-      commit("setAppCalculateReward", data.reward);
-    }
   },
 
   modules: {},

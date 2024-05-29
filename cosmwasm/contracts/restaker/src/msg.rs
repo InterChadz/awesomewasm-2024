@@ -27,8 +27,17 @@ pub enum ExecuteMsg {
 }
 
 #[cw_serde]
+pub struct UserChainRegistrationInput {
+    pub chain_id: String,
+    pub address: String,
+    pub validators: Vec<String>,
+}
+
+#[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {
+    #[returns(ConfigResponse)]
+    Config {},
     #[returns(SupportedChainsResponse)]
     SupportedChains {
         limit: Option<u64>,
@@ -46,13 +55,13 @@ pub enum QueryMsg {
         chain_id: String,
         remote_address: String,
     },
+    #[returns(UserBalanceResponse)]
+    UserBalance { address: String },
 }
 
 #[cw_serde]
-pub struct UserChainRegistrationInput {
-    pub chain_id: String,
-    pub address: String,
-    pub validators: Vec<String>,
+pub struct ConfigResponse {
+    pub config: Config,
 }
 
 #[cw_serde]
@@ -70,7 +79,7 @@ pub struct SupportedChainsResponse {
 #[cw_serde]
 pub struct UserChainResponse {
     pub chain_id: String,
-    pub address: String,
+    pub remote_address: String,
     pub validators: Vec<String>,
 
     // Mostly for debugging, honestly
@@ -87,4 +96,9 @@ pub struct GetUserRegistrationsResponse {
 pub struct GetCalculatedRewardResponse {
     pub total_delegation: u128,
     pub reward: u128,
+}
+
+#[cw_serde]
+pub struct UserBalanceResponse {
+    pub balance: u128,
 }

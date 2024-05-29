@@ -5,16 +5,17 @@ use neutron_sdk::bindings::query::NeutronQuery;
 use neutron_sdk::interchain_queries;
 
 use crate::msg::{
-    ChainResponse, GetCalculatedRewardResponse, GetUserRegistrationsResponse, QueryMsg,
-    SupportedChainsResponse, UserChainResponse,
+    ChainResponse, ConfigResponse, GetCalculatedRewardResponse, GetUserRegistrationsResponse,
+    QueryMsg, SupportedChainsResponse, UserBalanceResponse, UserChainResponse,
 };
-use crate::state::{user_chain_registrations, Chain, SUPPORTED_CHAINS};
+use crate::state::{user_chain_registrations, Chain, CONFIG, SUPPORTED_CHAINS, USER_BALANCES};
 
 pub const DEFAULT_LIMIT: u64 = 30;
 
 #[entry_point]
 pub fn query(deps: Deps<NeutronQuery>, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
+        QueryMsg::Config {} => to_json_binary(&query_config(deps)?),
         QueryMsg::SupportedChains { limit, start_after } => {
             to_json_binary(&query_supported_chains(deps, limit, start_after)?)
         }
@@ -39,7 +40,13 @@ pub fn query(deps: Deps<NeutronQuery>, env: Env, msg: QueryMsg) -> StdResult<Bin
             chain_id,
             remote_address,
         )?),
+        QueryMsg::UserBalance { address } => to_json_binary(&query_user_balance(deps, address)?),
     }
+}
+
+pub fn query_config(deps: Deps<NeutronQuery>) -> StdResult<ConfigResponse> {
+    let config = CONFIG.load(deps.storage)?;
+    Ok(ConfigResponse { config })
 }
 
 pub fn query_supported_chains(
@@ -88,7 +95,7 @@ pub fn query_user_registrations(
             let user_chain_registration = item.unwrap().1;
             Some(UserChainResponse {
                 chain_id: user_chain_registration.chain_id,
-                address: user_chain_registration.remote_address,
+                remote_address: user_chain_registration.remote_address,
                 validators: user_chain_registration.validators.clone(),
                 delegator_delegations_reply_id: user_chain_registration
                     .delegator_delegations_reply_id,
@@ -124,6 +131,21 @@ pub fn query_calculate_reward(
     Ok(GetCalculatedRewardResponse {
         total_delegation,
         reward: 42,
+    })
+}
+
+pub fn query_user_balance(
+    deps: Deps<NeutronQuery>,
+    address: String,
+) -> StdResult<UserBalanceResponse> {
+    let local_address = deps.api.addr_validate(&address)?;
+
+    let balance = USER_BALANCES
+        .may_load(deps.storage, local_address)
+        .map(|balance| balance.unwrap_or_default())?;
+
+    Ok(UserBalanceResponse {
+        balance: balance.into(),
     })
 }
 

@@ -37,6 +37,7 @@
 
 <script>
 import BalanceTableComponent from '@/components/BalanceTableComponent.vue';
+import mxChain from "@/mixin/chain";
 
 export default {
   name: 'ChainComponent',
@@ -51,23 +52,35 @@ export default {
     stakedValidators: Array,
     pendingRewards: Number
   },
+  mixins: [mxChain],
+
   data() {
     return {
       restakingEnabled: false
     };
   },
   methods: {
-    compound() {
-      // Compound or restake logic here
+    async compound() {
       console.log('Compound / Restake button clicked');
+
+      try {
+        await this.autocompound();
+        alert("Rewards compounded successfully.");
+      } catch (error) {
+        console.error("Error compounding rewards:", error);
+        alert("Failed to compound rewards.");
+      }
     },
     withdrawStaked() {
       // Withdraw staked amount logic here
       console.log('Withdraw Staked Amount button clicked');
+      alert("Not implemented yet.");
     },
     withdrawRewards() {
       // Withdraw rewards logic here
       console.log('Withdraw Rewards button clicked');
+      alert("Not implemented yet.");
+
     },
     toggleRestaking() {
       // Toggle restaking logic here

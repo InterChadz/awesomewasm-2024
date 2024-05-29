@@ -40,7 +40,7 @@ export default {
     ChainComponent
   },
   computed: {
-    ...mapGetters(['userBalance', 'userContractBalance', 'userRegistrations', 'appSupportedChains']),
+    ...mapGetters(['userBalance', 'userContractBalance', 'userRegistrations', 'userRewards', 'appSupportedChains']),
     walletBalance() {
       return this.userBalance;
     },
@@ -53,14 +53,15 @@ export default {
         const isSupported = supportedChainIds.includes(chain.chainId);
         if (isSupported) {
           const registration = this.userRegistrations.find(reg => reg.chain_id === chain.chainId);
+          const reward = this.userRewards.find(reward => reward.chain_id === chain.chainId);
           return {
             ...chain,
             stakedValidators: registration ? registration.validators.map(validator => ({
               address: validator,
               amount: 0
             })) : [],
-            totalStaked: 0,
-            pendingRewards: 0
+            totalStaked: reward ? reward.calculated_reward.total_delegation : 0,
+            pendingRewards: reward ? reward.calculated_reward.reward : 0
           };
         }
         return null;

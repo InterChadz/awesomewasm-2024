@@ -24,6 +24,8 @@ pub struct UserChainRegistration {
     pub chain_id: String,
     pub remote_address: String, // The address on the other chain
     pub validators: Vec<String>,
+    pub delegator_delegations_reply_id: u64, // This is used to set up the ICQ query id (see reply.rs)
+    pub delegator_delegations_icq_id: Option<u64>, // This is they ID we use to query the ICQ, if this is set the registration is in progress
 }
 
 pub const CONFIG: Item<Config> = Item::new("config");
@@ -31,6 +33,9 @@ pub const CONFIG: Item<Config> = Item::new("config");
 // chain-id -> Chain
 pub const SUPPORTED_CHAINS: Map<String, Chain> = Map::new("supported_chains");
 pub const ICA_PORT_ID_TO_CHAIN_ID: Map<String, String> = Map::new("ica_port_id_to_chain_id");
+
+pub const NEXT_REPLY_ID: Item<u64> = Item::new("next_reply_id");
+pub const REPLY_ID_TO_USER_CHAIN_REGISTRATION: Map<u64, (Addr, String, String)> = Map::new("reply_id_to_user_chain_registration");
 
 #[index_list(UserChainRegistration)]
 pub struct UserChainRegistrationIndexes<'a> {

@@ -34,7 +34,7 @@ pub enum QueryMsg {
         limit: Option<u64>,
         start_after: Option<String>,
     },
-    #[returns(GetGetUserRegistrationsResponse)]
+    #[returns(GetUserRegistrationsResponse)]
     UserRegistrations {
         address: String,
         limit: Option<u64>,

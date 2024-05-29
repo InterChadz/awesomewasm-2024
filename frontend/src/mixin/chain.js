@@ -10,7 +10,7 @@ const mxChain = {
   },
 
   methods: {
-    async someTx() {
+    async registerUser() {
       /** @type {import("@cosmjs/proto-signing").EncodeObject} */
       const msg = {
         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -18,7 +18,41 @@ const mxChain = {
           sender: this.userAddress,
           contract: process.env.VUE_APP_CONTRACT,
           msg: toUtf8(JSON.stringify({
-            // TODO: Add your message here
+            register_user: {}
+          })),
+          funds: [],
+        }
+      }
+      return this._submitTx(msg)
+    },
+
+    async topupUserBalance() {
+      /** @type {import("@cosmjs/proto-signing").EncodeObject} */
+      const msg = {
+        typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+        value: {
+          sender: this.userAddress,
+          contract: process.env.VUE_APP_CONTRACT,
+          msg: toUtf8(JSON.stringify({
+            register_user: {}
+          })),
+          funds: [
+            // TODO: impl funds here
+          ],
+        }
+      }
+      return this._submitTx(msg)
+    },
+
+    async autocompound() {
+      /** @type {import("@cosmjs/proto-signing").EncodeObject} */
+      const msg = {
+        typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+        value: {
+          sender: this.userAddress,
+          contract: process.env.VUE_APP_CONTRACT,
+          msg: toUtf8(JSON.stringify({
+            register_user: {}
           })),
           funds: [],
         }

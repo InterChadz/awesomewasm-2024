@@ -1,11 +1,11 @@
 <template>
   <div class="staking-page">
     <div class="balances d-flex ">
-      <div class="col-md-3 d-flex">
+      <div class="col-md-4 d-flex">
         <ToppedUpBalanceComponent :balance="toppedUpBalance" />
       </div>
-      <div class="col-md-6 d-flex"> </div>
-      <div class="col-md-3 d-flex ">
+      <div class="col-md-4 d-flex"> </div>
+      <div class="col-md-4 d-flex ">
         <WalletBalanceComponent :balance="walletBalance" />
       </div>
     </div>
@@ -39,13 +39,16 @@ export default {
     ChainComponent
   },
   computed: {
-    ...mapGetters(['userBalance', 'userContractBalance']),
+    ...mapGetters(['userBalance', 'userContractBalance', 'supportedChains']),
     walletBalance() {
       return this.userBalance;
     },
     toppedUpBalance() {
       return this.userContractBalance; 
-    }
+    },
+    // chains() {
+    //   return this.supportedChains;
+    // }
   },
   data() {
     return {

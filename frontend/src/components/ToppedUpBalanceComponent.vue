@@ -1,29 +1,69 @@
 <template>
-    <div class="balance-component">
-      
-      <p><b>Active Balance </b>{{ balance }} <CoinComponent/></p>
-      <button @click="addBalance">Add</button>
-      
-    </div>
-  </template>
-  
-  <script>
-  import CoinComponent from "@/components/Common/CoinComponent.vue";
+  <div class="balance-component">
+    <p><b>Active Balance </b>{{ balance }} <CoinComponent/></p>
+    <button @click="addBalance">Add</button>
 
-  export default {
-    name: 'ToppedUpBalanceComponent',
-    components: {
+    <div v-if="showPopup" class="popup">
+      <div class="popup-content">
+        <h3>Select Amount to Top Up</h3>
+        <input type="number" v-model="topupAmount" placeholder="Enter amount" />
+        <button @click="confirmTopup">Confirm</button>
+        <button @click="showPopup = false">Cancel</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import CoinComponent from "@/components/Common/CoinComponent.vue";
+import mxChain from "@/mixin/chain";
+
+export default {
+  name: 'ToppedUpBalanceComponent',
+  components: {
     CoinComponent
   },
-    props: {
-      balance: Number
+  props: {
+    balance: Number
+  },
+  mixins: [mxChain],
+  data() {
+    return {
+      showPopup: false,
+      topupAmount: 0
+    };
+  },
+  methods: {
+    addBalance() {
+      this.showPopup = true;
     },
-    methods: {
-      addBalance() {
-        // Logic to add balance
-        console.log('Add Balance button clicked');
+    async confirmTopup() {
+      this.showPopup = false;
+
+      if (this.topupAmount <= 0) {
+        alert("Please enter a valid amount.");
+        return;
+      }
+
+      // Convert the amount to the format required by the contract
+      const funds = [
+        {
+          denom: process.env.VUE_APP_FEE_DENOM,
+          amount: (this.topupAmount * 1000000).toString()
+        }
+      ];
+
+      try {
+        await this.topupUserBalance(funds);
+        alert("Balance topped up successfully.");
+      } catch (error) {
+        console.error("Error topping up balance:", error);
+        alert("Failed to top up balance.");
       }
     }
-  };
-  </script>
-  
+  }
+};
+</script>
+
+<style scoped>
+</style>

@@ -26,24 +26,25 @@ const mxChain = {
       return this._submitTx(msg)
     },
 
-    async topupUserBalance() {
-      /** @type {import("@cosmjs/proto-signing").EncodeObject} */
-      const msg = {
-        typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-        value: {
-          sender: this.userAddress,
-          contract: process.env.VUE_APP_CONTRACT,
-          msg: toUtf8(JSON.stringify({
-            register_user: {}
-          })),
-          funds: [
-            // TODO: impl funds here
-          ],
+    methods: {
+      async topupUserBalance(funds) {
+        /** @type {import("@cosmjs/proto-signing").EncodeObject} */
+        const msg = {
+          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+          value: {
+            sender: this.userAddress,
+            contract: process.env.VUE_APP_CONTRACT,
+            msg: toUtf8(JSON.stringify({
+              register_user: {}
+            })),
+            funds: funds,
+          }
         }
-      }
-      return this._submitTx(msg)
+        return this._submitTx(msg);
+      },
+      // Other methods...
     },
-
+    
     async autocompound() {
       /** @type {import("@cosmjs/proto-signing").EncodeObject} */
       const msg = {

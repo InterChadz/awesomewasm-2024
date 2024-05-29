@@ -1,5 +1,7 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 
+use crate::state::Config;
+
 #[cw_serde]
 pub struct InstantiateMsg {
     pub admin: String,
@@ -8,6 +10,9 @@ pub struct InstantiateMsg {
 
 #[cw_serde]
 pub enum ExecuteMsg {
+    UpdateConfig {
+        config: Config,
+    },
     AddSupportedChain {
         chain_id: String,
         connection_id: String,
@@ -15,6 +20,10 @@ pub enum ExecuteMsg {
     RegisterUser {
         registrations: Vec<UserChainRegistrationInput>,
     },
+    TopupUserBalance {
+        // recipient: String, // TODO: nice to have thing
+    },
+    Autocompound {},
 }
 
 #[cw_serde]

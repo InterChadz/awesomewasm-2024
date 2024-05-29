@@ -1,4 +1,5 @@
 use cosmwasm_std::{coins, entry_point, DepsMut, Env, MessageInfo, Response, SubMsg};
+use cw0::must_pay;
 use interchain_queries::v047::register_queries::new_register_delegator_delegations_query_msg;
 use neutron_sdk::bindings::msg::NeutronMsg;
 use neutron_sdk::bindings::query::NeutronQuery;
@@ -8,8 +9,9 @@ use neutron_sdk::interchain_txs::helpers::get_port_id;
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, UserChainRegistrationInput};
 use crate::state::{
-    user_chain_registrations, Chain, UserChainRegistration, CONFIG, ICA_PORT_ID_TO_CHAIN_ID,
-    NEXT_REPLY_ID, REPLY_ID_TO_USER_CHAIN_REGISTRATION, SUPPORTED_CHAINS,
+    user_chain_registrations, Chain, Config, UserChainRegistration, CONFIG,
+    ICA_PORT_ID_TO_CHAIN_ID, NEXT_REPLY_ID, REPLY_ID_TO_USER_CHAIN_REGISTRATION, SUPPORTED_CHAINS,
+    USER_BALANCES,
 };
 
 //const STAKING_STORE_KEY: &str = "staking";
@@ -23,12 +25,32 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response<NeutronMsg>, ContractError> {
     match msg {
+        ExecuteMsg::UpdateConfig { config } => update_config(deps, info, config),
         ExecuteMsg::AddSupportedChain {
             chain_id,
             connection_id,
         } => add_supported_chain(deps, env, info, chain_id, connection_id),
         ExecuteMsg::RegisterUser { registrations } => register_user(deps, info, registrations),
+        ExecuteMsg::TopupUserBalance {} => topup_user_balance(deps, env, info),
+        ExecuteMsg::Autocompound {} => autocompound(deps, env, info),
     }
+}
+
+pub fn update_config(
+    deps: DepsMut<NeutronQuery>,
+    info: MessageInfo,
+    new_config: Config,
+) -> Result<Response<NeutronMsg>, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+
+    // Validate admin is caller
+    if info.sender != config.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    CONFIG.save(deps.storage, &new_config)?;
+
+    Ok(Response::new())
 }
 
 pub fn add_supported_chain(
@@ -193,8 +215,95 @@ pub fn register_user(
     Ok(key)
 }*/
 
+pub fn topup_user_balance(
+    _deps: DepsMut<NeutronQuery>,
+    _env: Env,
+    info: MessageInfo,
+) -> Result<Response<NeutronMsg>, ContractError> {
+    must_pay(&info, "untrn")?;
+
+    // Topup the balance for a specific user
+    USER_BALANCES.update(
+        _deps.storage,
+        info.sender,
+        |balance| -> Result<_, ContractError> {
+            Ok(balance.unwrap_or_default() + info.funds[0].amount)
+        },
+    )?;
+
+    Ok(Response::new())
+}
+
+pub fn autocompound(
+    deps: DepsMut<NeutronQuery>,
+    _env: Env,
+    _info: MessageInfo,
+) -> Result<Response<NeutronMsg>, ContractError> {
+    todo!();
+
+    // Iterate over all user_chain_registrations and autocompound
+    let registrations = user_chain_registrations()
+        .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
+        .map(|item| item.unwrap())
+        .collect::<Vec<_>>();
+
+    for ((src_addr, dst_chain_id, dst_addr), _) in registrations {
+        // Autocompound for each registration
+        // only if the given user has enough topped up balance to cover protocol fees
+        let balance = USER_BALANCES
+            .load(deps.storage, src_addr)
+            .unwrap_or_default();
+    }
+
+    Ok(Response::new()) // Return an empty response
+}
+
 #[cfg(test)]
 mod tests {
+    mod test_update_config {
+        use cosmwasm_std::testing::{mock_env, mock_info};
+        use cosmwasm_std::{coins, Addr};
+
+        use crate::execute::execute;
+        use crate::instantiate::instantiate;
+        use crate::msg::{ExecuteMsg, InstantiateMsg};
+        use crate::state::CONFIG;
+        use crate::testing::helpers::mock_neutron_dependencies;
+
+        #[test]
+        fn test_update_config() {
+            let mut deps = mock_neutron_dependencies();
+            let info = mock_info("creator", &coins(1000000, "untrn"));
+
+            instantiate(
+                deps.as_mut(),
+                mock_env(),
+                info.clone(),
+                InstantiateMsg {
+                    admin: info.sender.to_string(),
+                    neutron_register_ica_fee: 1000000,
+                },
+            )
+            .unwrap();
+
+            let new_admin = "new_admin".to_string();
+            let new_fee = 2000000;
+            let msg = ExecuteMsg::UpdateConfig {
+                config: crate::state::Config {
+                    admin: Addr::unchecked(&new_admin),
+                    neutron_register_ica_fee: new_fee,
+                },
+            };
+
+            let res = execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+            assert_eq!(0, res.messages.len());
+
+            let config = CONFIG.load(deps.as_ref().storage).unwrap();
+            assert_eq!(config.admin, new_admin);
+            assert_eq!(config.neutron_register_ica_fee, new_fee);
+        }
+    }
+
     mod test_add_supported_chain {
         use cosmwasm_std::coins;
         use cosmwasm_std::testing::{mock_env, mock_info};
@@ -340,6 +449,35 @@ mod tests {
 
             let next_reply_id = NEXT_REPLY_ID.load(deps.as_ref().storage).unwrap();
             assert_eq!(next_reply_id, 2);
+        }
+    }
+
+    mod test_topup_user_balance {
+        use crate::execute::execute;
+        use crate::msg::ExecuteMsg;
+        use crate::state::USER_BALANCES;
+        use crate::testing::helpers::mock_neutron_dependencies;
+        use cosmwasm_std::testing::{mock_env, mock_info};
+        use cosmwasm_std::{coins, Uint128};
+
+        #[test]
+        fn test_topup_user_balance() {
+            let mut deps = mock_neutron_dependencies();
+            let info = mock_info("creator", &coins(1000000, "untrn"));
+
+            let res = execute(
+                deps.as_mut(),
+                mock_env(),
+                info.clone(),
+                ExecuteMsg::TopupUserBalance {},
+            )
+            .unwrap();
+            assert_eq!(0, res.messages.len());
+
+            let balance = USER_BALANCES
+                .load(deps.as_ref().storage, info.sender)
+                .unwrap();
+            assert_eq!(balance, Uint128::new(1000000));
         }
     }
 }

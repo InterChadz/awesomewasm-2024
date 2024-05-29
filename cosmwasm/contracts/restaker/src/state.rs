@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::Addr;
+use cosmwasm_std::{Addr, Uint128};
 use cw_storage_macro::index_list;
 use cw_storage_plus::{IndexedMap, Item, Map, MultiIndex};
 
@@ -37,6 +37,9 @@ pub const ICA_PORT_ID_TO_CHAIN_ID: Map<String, String> = Map::new("ica_port_id_t
 pub const NEXT_REPLY_ID: Item<u64> = Item::new("next_reply_id");
 pub const REPLY_ID_TO_USER_CHAIN_REGISTRATION: Map<u64, (Addr, String, String)> =
     Map::new("reply_id_to_user_chain_registration");
+
+// user_address -> balance
+pub const USER_BALANCES: Map<Addr, Uint128> = Map::new("user_balances"); // Always in untrn
 
 #[index_list(UserChainRegistration)]
 pub struct UserChainRegistrationIndexes<'a> {

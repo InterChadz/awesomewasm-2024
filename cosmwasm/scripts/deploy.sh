@@ -20,7 +20,15 @@ COSMOS_HUB_VAL="cosmosvaloper18hl5c9xn5dze2g50uaw0l2mr02ew57zk0auktn"
 COSMOS_HUB_CHAIN_ID="test-2"
 CONNECTION_ID="connection-0"
 
-STORE_HASH=$(neutrond tx wasm store ./artifacts/awesome_restaker-aarch64.wasm --from $NEUTRON_ADMIN_KEY --gas-prices 0.025untrn --gas auto --gas-adjustment 1.75 --chain-id $NEUTRON_CHAIN_ID  --yes --keyring-backend test --output json | jq -r ".txhash")
+# Determine the architecture and set the appropriate file path
+if [ "$(uname -m)" = "arm64" ]; then
+  wasm_file="./artifacts/awesome_restaker-aarch64.wasm"
+else
+  wasm_file="./artifacts/awesome_restaker.wasm"
+fi
+
+# Store the hash using the appropriate wasm file
+STORE_HASH=$(neutrond tx wasm store $wasm_file --from $NEUTRON_ADMIN_KEY --gas-prices 0.025untrn --gas auto --gas-adjustment 1.75 --chain-id $NEUTRON_CHAIN_ID --yes --keyring-backend test --output json | jq -r ".txhash")
 sleep 3
 CODE_ID=$(neutrond q tx "$STORE_HASH" --output json | jq -r '.events[] | select(.type=="store_code") | .attributes[] | select(.key=="code_id") | .value')
 echo "Uploaded contract with code id: $CODE_ID"

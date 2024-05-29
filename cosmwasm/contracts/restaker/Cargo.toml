@@ -15,6 +15,7 @@ neutron-sdk = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde-json-wasm = { workspace = true }
 thiserror = { workspace = true }
+cw0 = { workspace = true }
 
 [dev-dependencies]
 cw-multi-test = { workspace = true }

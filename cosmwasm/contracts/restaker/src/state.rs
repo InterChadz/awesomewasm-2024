@@ -52,6 +52,7 @@ pub const REPLY_ID_TO_USER_DELEGATE: Map<u64, (Addr, String, String)> =
 // user_address -> balance
 pub const USER_BALANCES: Map<Addr, Uint128> = Map::new("user_balances"); // Always in untrn
 
+// (Addr, String, String) is local_address, chain_id, remote_address
 #[index_list(UserChainRegistration)]
 pub struct UserChainRegistrationIndexes<'a> {
     pub local_address: MultiIndex<'a, Addr, UserChainRegistration, (Addr, String, String)>,

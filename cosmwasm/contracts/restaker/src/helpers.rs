@@ -1,6 +1,6 @@
 use cosmos_sdk_proto::cosmos::{base::v1beta1::Coin, staking::v1beta1::MsgDelegate};
 use cosmos_sdk_proto::traits::Message;
-use cosmwasm_std::{coins, Addr, Binary, Deps, Env, StdError, SubMsg};
+use cosmwasm_std::{coins, Addr, Binary, Deps, Env, StdError, SubMsg, Order, StdResult};
 use cw_storage_plus::PrefixBound;
 use neutron_sdk::bindings::query::NeutronQuery;
 use neutron_sdk::bindings::{
@@ -9,6 +9,7 @@ use neutron_sdk::bindings::{
 };
 
 use crate::error::ContractError;
+use crate::msg::UserChainResponse;
 use crate::state::{user_chain_registrations, UserChainRegistration};
 
 const DEFAULT_TIMEOUT_SECONDS: u64 = 60 * 60 * 24 * 7 * 2; // 2 weeks TODO: this is a lot, how much? Or we just deprecate this and we always pass it from above.
@@ -17,26 +18,36 @@ pub fn get_due_user_chain_registrations(
     deps: &Deps<NeutronQuery>,
     env: &Env,
     delegators_amount: u64,
-) -> Result<Vec<((Addr, String, String), UserChainRegistration)>, ContractError> {
+) -> Result<Vec<UserChainRegistration>, ContractError> {
     let current_height = env.block.height;
-    let end_bound = Some(PrefixBound::inclusive(current_height));
+    //let end_bound = Some(PrefixBound::inclusive(current_height));
 
-    let result = user_chain_registrations()
+    let reggies = user_chain_registrations()
+        .range(deps.storage, None, None, Order::Ascending)
+        .filter_map(|item| {
+            let reg = item.unwrap().1;
+            if reg.next_compound_height <= current_height {
+                Some(reg)
+            } else {
+                None
+            }
+        })
+        .take(delegators_amount as usize)
+        .collect::<Vec<UserChainRegistration>>();
+    
+    /*let result = user_chain_registrations()
         .idx
         .next_compound_height
         .prefix_range(
             deps.storage,
             None,
-            end_bound,
+            None,
             cosmwasm_std::Order::Ascending,
         )
-        .map(|item| item.unwrap())
         .take(delegators_amount as usize)
-        .collect::<Vec<((Addr, String, String), UserChainRegistration)>>();
+        .collect::<StdResult<Vec<((Addr, String, String), UserChainRegistration)>>>()?;*/
 
-    println!("result: {:?}", result);
-
-    Ok(result)
+    Ok(reggies)
 }
 
 pub fn get_delegate_submsg(

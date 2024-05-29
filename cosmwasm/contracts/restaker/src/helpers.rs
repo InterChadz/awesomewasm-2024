@@ -1,14 +1,43 @@
 use cosmos_sdk_proto::cosmos::{base::v1beta1::Coin, staking::v1beta1::MsgDelegate};
 use cosmos_sdk_proto::traits::Message;
-use cosmwasm_std::{coins, Binary, StdError, SubMsg};
+use cosmwasm_std::{coins, Addr, Binary, Deps, Env, StdError, SubMsg};
+use cw_storage_plus::PrefixBound;
+use neutron_sdk::bindings::query::NeutronQuery;
 use neutron_sdk::bindings::{
     msg::{IbcFee, NeutronMsg},
     types::ProtobufAny,
 };
 
 use crate::error::ContractError;
+use crate::state::{user_chain_registrations, UserChainRegistration};
 
 const DEFAULT_TIMEOUT_SECONDS: u64 = 60 * 60 * 24 * 7 * 2; // 2 weeks TODO: this is a lot, how much? Or we just deprecate this and we always pass it from above.
+
+pub fn get_due_user_chain_registrations(
+    deps: &Deps<NeutronQuery>,
+    env: &Env,
+    delegators_amount: u64,
+) -> Result<Vec<((Addr, String, String), UserChainRegistration)>, ContractError> {
+    let current_height = env.block.height;
+    let end_bound = Some(PrefixBound::inclusive(current_height));
+
+    let result = user_chain_registrations()
+        .idx
+        .next_compound_height
+        .prefix_range(
+            deps.storage,
+            None,
+            end_bound,
+            cosmwasm_std::Order::Ascending,
+        )
+        .map(|item| item.unwrap())
+        .take(delegators_amount as usize)
+        .collect::<Vec<((Addr, String, String), UserChainRegistration)>>();
+
+    println!("result: {:?}", result);
+
+    Ok(result)
+}
 
 pub fn get_delegate_submsg(
     interchain_account_id: String,

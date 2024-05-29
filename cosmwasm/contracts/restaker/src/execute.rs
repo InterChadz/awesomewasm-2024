@@ -3,7 +3,6 @@ use cosmwasm_std::{
     Uint128,
 };
 use cw0::must_pay;
-use cw_storage_plus::PrefixBound;
 use interchain_queries::v047::register_queries::new_register_delegator_delegations_query_msg;
 use neutron_sdk::bindings::msg::NeutronMsg;
 use neutron_sdk::bindings::query::NeutronQuery;
@@ -11,7 +10,7 @@ use neutron_sdk::interchain_queries;
 use neutron_sdk::interchain_txs::helpers::get_port_id;
 
 use crate::error::ContractError;
-use crate::helpers::get_delegate_submsg;
+use crate::helpers::{get_delegate_submsg, get_due_user_chain_registrations};
 use crate::msg::{ExecuteMsg, UserChainRegistrationInput};
 use crate::query::query_calculate_reward;
 use crate::state::{
@@ -322,20 +321,7 @@ pub fn autocompound(
     // Iterate over all user_chain_registrations:
     // sorted by next_compound_height ASC, with next_compound_height <= current_height, as much as delegators_amount.
     // so we rely on the fact that the next_compound_height is updated after each autocompound and the next iteration we will have the next users to autocompound.
-    let current_height = env.block.height;
-    let end_bound = Some(PrefixBound::inclusive(current_height));
-    let registrations = user_chain_registrations()
-        .idx
-        .next_compound_height
-        .prefix_range(
-            deps.storage,
-            None,
-            end_bound,
-            cosmwasm_std::Order::Ascending,
-        )
-        .map(|item| item.unwrap())
-        .take(delegators_amount as usize)
-        .collect::<Vec<_>>();
+    let registrations = get_due_user_chain_registrations(&deps.as_ref(), &env, delegators_amount)?;
 
     let mut delegate_submsgs: Vec<SubMsg<NeutronMsg>> = vec![];
     let mut keeper_fee: u128 = 0;

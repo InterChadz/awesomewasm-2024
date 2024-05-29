@@ -1,5 +1,7 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 
+use crate::state::Config;
+
 #[cw_serde]
 pub struct InstantiateMsg {
     pub admin: String,
@@ -8,10 +10,20 @@ pub struct InstantiateMsg {
 
 #[cw_serde]
 pub enum ExecuteMsg {
+    UpdateConfig {
+        config: Config,
+    },
     AddSupportedChain {
         chain_id: String,
         connection_id: String,
     },
+    RegisterUser {
+        registrations: Vec<UserChainRegistrationInput>,
+    },
+    TopupUserBalance {
+        // recipient: String, // TODO: nice to have thing
+    },
+    Autocompound {},
 }
 
 #[cw_serde]
@@ -22,6 +34,25 @@ pub enum QueryMsg {
         limit: Option<u64>,
         start_after: Option<String>,
     },
+    #[returns(GetUserRegistrationsResponse)]
+    UserRegistrations {
+        address: String,
+        limit: Option<u64>,
+        start_after: Option<String>,
+    },
+    #[returns(GetCalculatedRewardResponse)]
+    CalculateReward {
+        address: String,
+        chain_id: String,
+        remote_address: String,
+    },
+}
+
+#[cw_serde]
+pub struct UserChainRegistrationInput {
+    pub chain_id: String,
+    pub address: String,
+    pub validators: Vec<String>,
 }
 
 #[cw_serde]
@@ -34,4 +65,26 @@ pub struct ChainResponse {
 #[cw_serde]
 pub struct SupportedChainsResponse {
     pub chains: Vec<ChainResponse>,
+}
+
+#[cw_serde]
+pub struct UserChainResponse {
+    pub chain_id: String,
+    pub address: String,
+    pub validators: Vec<String>,
+
+    // Mostly for debugging, honestly
+    pub delegator_delegations_reply_id: u64,
+    pub delegator_delegations_icq_id: Option<u64>,
+}
+
+#[cw_serde]
+pub struct GetUserRegistrationsResponse {
+    pub user_chain_registrations: Vec<UserChainResponse>,
+}
+
+#[cw_serde]
+pub struct GetCalculatedRewardResponse {
+    pub total_delegation: u128,
+    pub reward: u128,
 }

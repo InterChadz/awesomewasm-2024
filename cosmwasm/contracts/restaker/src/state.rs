@@ -35,16 +35,23 @@ pub const SUPPORTED_CHAINS: Map<String, Chain> = Map::new("supported_chains");
 pub const ICA_PORT_ID_TO_CHAIN_ID: Map<String, String> = Map::new("ica_port_id_to_chain_id");
 
 pub const NEXT_REPLY_ID: Item<u64> = Item::new("next_reply_id");
-pub const REPLY_ID_TO_USER_CHAIN_REGISTRATION: Map<u64, (Addr, String, String)> = Map::new("reply_id_to_user_chain_registration");
+pub const REPLY_ID_TO_USER_CHAIN_REGISTRATION: Map<u64, (Addr, String, String)> =
+    Map::new("reply_id_to_user_chain_registration");
 
 #[index_list(UserChainRegistration)]
 pub struct UserChainRegistrationIndexes<'a> {
     pub local_address: MultiIndex<'a, Addr, UserChainRegistration, (Addr, String, String)>,
 }
 
-pub fn user_chain_registrations<'a>() -> IndexedMap<'a, (Addr, String, String), UserChainRegistration, UserChainRegistrationIndexes<'a>> {
+pub fn user_chain_registrations<'a>(
+) -> IndexedMap<'a, (Addr, String, String), UserChainRegistration, UserChainRegistrationIndexes<'a>>
+{
     let indexes = UserChainRegistrationIndexes {
-        local_address: MultiIndex::new(|_pk: &[u8], u: &UserChainRegistration| u.local_address.clone(), "user_chain_registrations", "user_chain_registrations__local_address"),
+        local_address: MultiIndex::new(
+            |_pk: &[u8], u: &UserChainRegistration| u.local_address.clone(),
+            "user_chain_registrations",
+            "user_chain_registrations__local_address",
+        ),
     };
 
     IndexedMap::new("user_chain_registrations", indexes)

@@ -1,7 +1,7 @@
-use std::marker::PhantomData;
-use cosmwasm_std::OwnedDeps;
 use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage};
+use cosmwasm_std::OwnedDeps;
 use neutron_sdk::bindings::query::NeutronQuery;
+use std::marker::PhantomData;
 
 pub fn mock_neutron_dependencies() -> OwnedDeps<MockStorage, MockApi, MockQuerier, NeutronQuery> {
     OwnedDeps {

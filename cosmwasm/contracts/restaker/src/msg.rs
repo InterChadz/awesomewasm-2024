@@ -14,7 +14,7 @@ pub enum ExecuteMsg {
     },
     RegisterUser {
         registrations: Vec<UserChainRegistrationInput>,
-    }
+    },
 }
 
 #[cw_serde]
@@ -36,7 +36,7 @@ pub enum QueryMsg {
         address: String,
         chain_id: String,
         remote_address: String,
-    }
+    },
 }
 
 #[cw_serde]

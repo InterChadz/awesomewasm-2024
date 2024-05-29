@@ -1,11 +1,9 @@
-use cosmwasm_std::{
-    DepsMut, entry_point, Env, MessageInfo, Response,
-};
+use cosmwasm_std::{entry_point, DepsMut, Env, MessageInfo, Response};
 use neutron_sdk::bindings::query::NeutronQuery;
 
 use crate::error::ContractError;
 use crate::msg::InstantiateMsg;
-use crate::state::{CONFIG, Config, NEXT_REPLY_ID};
+use crate::state::{Config, CONFIG, NEXT_REPLY_ID};
 
 #[entry_point]
 pub fn instantiate(
@@ -15,11 +13,16 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     let admin = deps.api.addr_validate(&msg.admin)?;
-    CONFIG.save(deps.storage, &Config {
-        admin,
-        neutron_register_ica_fee: msg.neutron_register_ica_fee,
-    }).unwrap();
-    
+    CONFIG
+        .save(
+            deps.storage,
+            &Config {
+                admin,
+                neutron_register_ica_fee: msg.neutron_register_ica_fee,
+            },
+        )
+        .unwrap();
+
     NEXT_REPLY_ID.save(deps.storage, &1).unwrap();
 
     Ok(Response::new())
@@ -51,7 +54,10 @@ mod tests {
 
         let config = CONFIG.load(deps.as_ref().storage).unwrap();
         assert_eq!(config.admin, msg.admin);
-        assert_eq!(config.neutron_register_ica_fee, msg.neutron_register_ica_fee);
+        assert_eq!(
+            config.neutron_register_ica_fee,
+            msg.neutron_register_ica_fee
+        );
 
         let next_reply_id = NEXT_REPLY_ID.load(deps.as_ref().storage).unwrap();
         assert_eq!(next_reply_id, 1);

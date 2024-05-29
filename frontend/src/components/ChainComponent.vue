@@ -2,6 +2,16 @@
   <div class="chain-component">
     <div class="row">
       <div class="col-md-6">
+        <div class="chain-header">
+            <span class="badge badge-primary"> <img :src="chainImage" alt="Chain Image" class="chain-image">{{ chainName }}</span>
+            <div class="restaking-toggle">
+              <span class="toggle-label">Restaking Enabled: </span>
+              <label class="switch">
+                <input type="checkbox" v-model="restakingEnabled" @change="toggleRestaking">
+                <span class="slider round"></span>
+              </label>
+            </div>
+          </div>
         <div class="chain-info">
           
           

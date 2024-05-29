@@ -48,7 +48,7 @@ This function is available on the staking dashboard as a toggle. When restaking 
 
 ### Autocompound
 
-This function triggers the autocompound feature, compounding all pending rewards to the staked balance.
+This function triggers the autocompound feature, compounding all pending rewards to the staked balances.
 
 ### TopupUserBalance
 

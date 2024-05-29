@@ -2,32 +2,31 @@
   <div class="balance-table-component">
     <div class="total-staked">
       <span>Total Staked:</span>
-      <span>{{ totalStaked }}</span>
+      <span>{{ displayAmount(totalStaked) }}</span>
     </div>
     <div class="staked-table">
       <div class="staked-row" v-for="(validator, index) in stakedValidators.slice(0, 3)" :key="index">
         <span>{{ shortenAddress(validator.address) }}:</span>
-        <span>{{ validator.amount }}</span>
+        <span>{{ displayAmount(validator.amount) }}</span>
       </div>
     </div>
     <div class="pending-rewards">
       <span>Pending Rewards:</span>
-      <span>{{ pendingRewards }}</span>
+      <span>{{ displayAmount(pendingRewards) }}</span>
     </div>
   </div>
 </template>
 
 <script>
+import mxChain from '@/mixin/chain';
+
 export default {
   name: 'BalanceTableComponent',
+  mixins:[mxChain],
   props: {
     stakedValidators: Array,
+    totalStaked: Number,
     pendingRewards: Number
-  },
-  computed: {
-    totalStaked() {
-      return this.stakedValidators.reduce((total, validator) => total + validator.amount, 0);
-    }
   },
   methods: {
     shortenAddress(address) {

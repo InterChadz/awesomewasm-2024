@@ -23,7 +23,7 @@
       </div>
       <div class="col-md-6">
         <div class="user-info">
-          <BalanceTableComponent :stakedValidators="stakedValidators" :pendingRewards="pendingRewards" />
+          <BalanceTableComponent :stakedValidators="stakedValidators" :pendingRewards="pendingRewards" :totalStaked="totalStaked" />
           <div class="action-buttons">
             <button @click="compound">Compound</button>
             <button @click="withdrawStaked">Withdraw All</button>
@@ -50,6 +50,7 @@ export default {
     costToAutocompound: String,
     lastAutocompound: String,
     stakedValidators: Array,
+    totalStaked: Number,
     pendingRewards: Number
   },
   mixins: [mxChain],

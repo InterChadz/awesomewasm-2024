@@ -16,6 +16,7 @@
           v-for="chain in filteredChains"
           :key="chain.chainId"
           :chainName="chain.name"
+          :chainId="chain.chainId"
           :chainImage="chain.image"
           :costToAutocompound="chain.costToAutocompound"
           :lastAutocompound="chain.lastAutocompound"

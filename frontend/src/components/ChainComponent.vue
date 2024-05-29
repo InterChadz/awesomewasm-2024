@@ -46,6 +46,7 @@ export default {
   },
   props: {
     chainName: String,
+    chainId: String,
     chainImage: String,
     costToAutocompound: String,
     lastAutocompound: String,
@@ -60,28 +61,16 @@ export default {
     };
   },
   methods: {
-    async compound() {
-      console.log('Compound / Restake button clicked');
-      try {
-        await this.autocompound();
-        alert("Rewards compounded successfully.");
-      } catch (error) {
-        console.error("Error compounding rewards:", error);
-        alert("Failed to compound rewards.");
+  async handleToggle(event) {
+      if (!this.chainId | !this.userAddress) {
+        console.error("Required variables are missing.");
+        event.target.checked = false;
+        return;
       }
-    },
-    withdrawStaked() {
-      console.log('Withdraw Staked Amount button clicked');
-      alert("Not implemented yet.");
-    },
-    withdrawRewards() {
-      console.log('Withdraw Rewards button clicked');
-      alert("Not implemented yet.");
-    },
-    async handleToggle(event) {
+      let validators = []; // TODO Get validators from the chain
       if (event.target.checked) {
         try {
-          await this.registerUser();
+          await this.registerUser(this.chainId, this.userAddress, validators);
           this.toast.success("User registered successfully.");
           this.restakingEnabled = true;
         } catch (error) {

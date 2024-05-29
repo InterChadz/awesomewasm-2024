@@ -7,7 +7,7 @@ const mxChain = {
   },
 
   methods: {
-    async registerUser() {
+    async registerUser(chainId, userAddress, validators) {
       /** @type {import("@cosmjs/proto-signing").EncodeObject} */
       const msg = {
         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -16,7 +16,11 @@ const mxChain = {
           contract: process.env.VUE_APP_CONTRACT,
           msg: toUtf8(JSON.stringify({
             register_user: {
-              registrations: {} // TODO add registration data
+              registrations: [{
+                chain_id: chainId,
+                address: userAddress,
+                validators: validators,
+              }] // TODO add registration data
             }
           })),
           funds: [],

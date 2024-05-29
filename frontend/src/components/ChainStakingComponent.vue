@@ -4,8 +4,8 @@
         <BalanceTableComponent :stakedValidators="stakedValidators" :pendingRewards="pendingRewards" :totalStaked="totalStaked" />
         <div class="action-buttons">
           <button @click="compound">Compound</button>
-          <button @click="withdrawStaked">Withdraw All</button>
-          <button @click="withdrawRewards">Withdraw Rewards</button>
+          <button @click="withdrawStaked" disabled="true">Withdraw All</button>
+          <button @click="withdrawRewards" disabled="true">Withdraw Rewards</button>
         </div>
     </div>
   </div>
@@ -14,6 +14,7 @@
 <script>
 import BalanceTableComponent from '@/components/BalanceTableComponent.vue';
 import mxChain from "@/mixin/chain";
+import mxToast from '@/mixin/toast';
 
 export default {
   name: 'ChainComponent',
@@ -29,7 +30,7 @@ export default {
     totalStaked: Number,
     pendingRewards: Number
   },
-  mixins: [mxChain],
+  mixins: [mxChain, mxToast],
 
   data() {
     return {
@@ -42,26 +43,20 @@ export default {
 
       try {
         await this.autocompound();
-        alert("Rewards compounded successfully.");
+        this.toast.success("Rewards compounded successfully.");
       } catch (error) {
         console.error("Error compounding rewards:", error);
-        alert("Failed to compound rewards.");
+        this.toast.error("Failed to compound rewards.");
       }
     },
     withdrawStaked() {
       // Withdraw staked amount logic here
       console.log('Withdraw Staked Amount button clicked');
-      alert("Not implemented yet.");
     },
     withdrawRewards() {
       // Withdraw rewards logic here
       console.log('Withdraw Rewards button clicked');
-      alert("Not implemented yet.");
 
-    },
-    toggleRestaking() {
-      // Toggle restaking logic here
-      console.log('Toggle Restaking:', this.restakingEnabled);
     }
   }
 };

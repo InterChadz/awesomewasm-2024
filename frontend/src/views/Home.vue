@@ -6,7 +6,7 @@
     </header>
     <section class="description">
       <p>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+        Real chads restake at InterChadz. 
       </p>
     </section>
 
@@ -15,25 +15,25 @@
       <div class="row">
         <div class="col-md-4">
           <div class="card bg-secondary border-0 rounded-3 p-3">
-            <h2>Card 1</h2>
+            <h2>Auto-compound staking</h2>
             <p>
-              Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+              InterChadz is available on multiple chains, auto-compounding all the staked amounts periodically to maximize staking yield.
             </p>
           </div>
         </div>
         <div class="col-md-4">
           <div class="card bg-secondary border-0 rounded-3 p-3">
-            <h2>Card 2</h2>
+            <h2>One time registration</h2>
             <p>
-              Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+              Users on InterChadz only have to register their wallet once to benefit from continuous auto-compounding on the platform.
             </p>
           </div>
         </div>
         <div class="col-md-4">
           <div class="card bg-secondary border-0 rounded-3 p-3">
-            <h2>Card 2</h2>
+            <h2>Fees</h2>
             <p>
-              Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+              All fees and charges on are handled by the InterChadz platform. The dashboard gives a clear view of all the fees and charges.
             </p>
           </div>
         </div>

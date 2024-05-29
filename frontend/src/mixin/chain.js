@@ -1,10 +1,7 @@
-import mxToast from "./toast";
 import {mapGetters} from "vuex";
 import {toUtf8} from "@cosmjs/encoding";
 
 const mxChain = {
-  mixins: [mxToast],
-
   computed: {
     ...mapGetters(['userSigner', 'userAddress', 'appConfig']),
   },
@@ -26,7 +23,6 @@ const mxChain = {
       return this._submitTx(msg)
     },
 
-    methods: {
   async topupUserBalance(funds) {
     /** @type {import("@cosmjs/proto-signing").EncodeObject} */
     const msg = {
@@ -35,15 +31,14 @@ const mxChain = {
         sender: this.userAddress,
         contract: process.env.VUE_APP_CONTRACT,
         msg: toUtf8(JSON.stringify({
-          register_user: {}
+          topup_user_balance: {}
         })),
         funds: funds,
       }
     }
     return this._submitTx(msg);
   },
-  // Other methods...
-},
+
 
     async autocompound() {
       /** @type {import("@cosmjs/proto-signing").EncodeObject} */
@@ -53,7 +48,7 @@ const mxChain = {
           sender: this.userAddress,
           contract: process.env.VUE_APP_CONTRACT,
           msg: toUtf8(JSON.stringify({
-            register_user: {}
+            autocompound: {},
           })),
           funds: [],
         }

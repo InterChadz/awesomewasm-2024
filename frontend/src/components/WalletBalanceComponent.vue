@@ -1,6 +1,6 @@
 <template>
   <div class="balance-component">
-    <p><b>Wallet Balance: </b>{{ balance }} <CoinComponent /></p>
+    <span><b>Wallet Balance: </b>{{ balance }} <CoinComponent /></span>
   </div>
 </template>
 

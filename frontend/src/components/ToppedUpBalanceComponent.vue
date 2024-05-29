@@ -1,7 +1,6 @@
 <template>
   <div class="balance-component">
-    <p><b>Active Balance </b>{{ balance }} <CoinComponent/></p>
-    <button @click="addBalance">Add</button>
+    <p><b>Active Balance</b> <span class="balance-amount">{{ displayAmount(balance) }} <CoinComponent /></span> </p>    <button @click="addBalance">Add</button>
 
     <div v-if="showPopup" class="popup">
       <div class="popup-content">
@@ -17,6 +16,7 @@
 <script>
 import CoinComponent from "@/components/Common/CoinComponent.vue";
 import mxChain from "@/mixin/chain";
+import mxToast from "@/mixin/toast";
 
 export default {
   name: 'ToppedUpBalanceComponent',
@@ -26,7 +26,7 @@ export default {
   props: {
     balance: Number
   },
-  mixins: [mxChain],
+  mixins: [mxChain, mxToast],
   data() {
     return {
       showPopup: false,
@@ -55,10 +55,11 @@ export default {
 
       try {
         await this.topupUserBalance(funds);
-        alert("Balance topped up successfully.");
+        this.toast.success("Balance topped up successfully.");
       } catch (error) {
         console.error("Error topping up balance:", error);
-        alert("Failed to top up balance.");
+        this.toast.error("Failed to top up balance.");
+      
       }
     }
   }

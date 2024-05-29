@@ -37,7 +37,7 @@
 For detailed instructions to start the dApp, see the respective readme files:
 
 - [Frontend installation instructions](https://github.com/InterChadz/awesomewasm-2024/blob/main/frontend/README-Vue.md)
-  - The frontend can also be accessed [here](https://interchadz.vercel.app/).
+  - The frontend can also be accessed [here](https://interchadz.vercel.app/). Please note that the contracts still need to be running locally for this.
 - [Contracts installation instructions](https://github.com/InterChadz/awesomewasm-2024/blob/main/cosmwasm/README.md)
 
 ## Functions

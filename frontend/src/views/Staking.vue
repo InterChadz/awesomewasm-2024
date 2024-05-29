@@ -1,18 +1,18 @@
 <template>
   <div class="staking-page">
-    <div class="balances d-flex ">
+    <div class="balances d-flex">
       <div class="col-md-4 d-flex">
         <ToppedUpBalanceComponent :balance="toppedUpBalance" />
       </div>
       <div class="col-md-4 d-flex"> </div>
-      <div class="col-md-4 d-flex ">
+      <div class="col-md-4 d-flex">
         <WalletBalanceComponent :balance="walletBalance" />
       </div>
     </div>
 
     <div class="chain-components">
       <ChainComponent
-        v-for="chain in chains"
+        v-for="chain in filteredChains"
         :key="chain.name"
         :chainName="chain.name"
         :chainImage="chain.image"
@@ -39,23 +39,25 @@ export default {
     ChainComponent
   },
   computed: {
-    ...mapGetters(['userBalance', 'userContractBalance', 'supportedChains']),
+    ...mapGetters(['userBalance', 'userContractBalance', 'appSupportedChains']),
     walletBalance() {
       return this.userBalance;
     },
     toppedUpBalance() {
-      return this.userContractBalance; 
+      return this.userContractBalance;
     },
-    // chains() {
-    //   return this.supportedChains;
-    // }
+    filteredChains() {
+      const supportedChainIds = this.appSupportedChains.map(chain => chain.chain_id);
+      return this.chains.filter(chain => supportedChainIds.includes(chain.chainId));
+    }
   },
   data() {
     return {
       chains: [
         {
           name: 'Cosmos Hub',
-          image: require('@/assets/chains/cosmos.svg'), 
+          chainId: 'test-0',
+          image: require('@/assets/chains/cosmos.svg'),
           costToAutocompound: '0.1 ATOM',
           lastAutocompound: '1 hour ago',
           stakedValidators: [
@@ -68,6 +70,7 @@ export default {
         },
         {
           name: 'Osmosis',
+          chainId: 'test-1',
           image: require('@/assets/chains/osmosis.svg'),
           costToAutocompound: '0.05 OSMO',
           lastAutocompound: '2 hours ago',
@@ -79,6 +82,7 @@ export default {
         },
         {
           name: 'Neutron',
+          chainId: 'test-2',
           image: require('@/assets/chains/neutron.png'),
           costToAutocompound: '0.01 NTRN',
           lastAutocompound: '3 hours ago',

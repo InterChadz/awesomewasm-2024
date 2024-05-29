@@ -183,6 +183,7 @@ p:last-child, ul:last-child {
 .chain-components {
   .chain-component {
     margin: 0rem 2rem 2rem 2rem;
+    border-radius: 10px !important;
     background-color: $secondary-color;
 
 
@@ -375,4 +376,14 @@ input:checked + .slider:before {
   width: 24px;
   height: auto;
   margin: 0.25rem 0.5rem 0.25rem 0; /* Combined margin properties */
+}
+
+.not-active {
+
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

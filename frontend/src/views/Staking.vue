@@ -1,13 +1,6 @@
 <template>
   <div class="staking-page">
-    <div v-if="loading" class="loading">
-      Loading data, please wait...
-    </div>
-    <div v-else-if="error" class="error">
-      <p>Failed to load data. Please try again.</p>
-      <button @click="retryFetchData">Retry</button>
-    </div>
-    <div v-else>
+    <div>
       <div class="balances d-flex">
         <div class="col-md-4 d-flex">
           <ToppedUpBalanceComponent :balance="toppedUpBalance" />
@@ -29,6 +22,7 @@
           :stakedValidators="chain.stakedValidators"
           :totalStaked="chain.totalStaked"
           :pendingRewards="chain.pendingRewards"
+          :isActive="chain.isActive"
         />
       </div>
     </div>
@@ -48,7 +42,6 @@ export default {
     WalletBalanceComponent,
     ChainComponent
   },
-  
   computed: {
     ...mapGetters(['userBalance', 'userContractBalance', 'userRegistrations', 'userRewards', 'appSupportedChains']),
     walletBalance() {
@@ -59,11 +52,20 @@ export default {
     },
     filteredChains() {
       const supportedChainIds = this.appSupportedChains.map(chain => chain.chain_id);
+      console.log("Supported Chain IDs:", supportedChainIds);
+      console.log("User Registrations:", this.userRegistrations);
+      
       return this.chains.map(chain => {
         const isSupported = supportedChainIds.includes(chain.chainId);
+        console.log(`Chain ${chain.chainId} is supported: ${isSupported}`);
+        
         if (isSupported) {
           const registration = this.userRegistrations.find(reg => reg.chain_id === chain.chainId);
+          console.log(`Chain ${chain.chainId} registration:`, registration);
+          
           const reward = this.userRewards.find(reward => reward.chain_id === chain.chainId);
+          console.log(`Chain ${chain.chainId} reward:`, reward);
+          
           return {
             ...chain,
             stakedValidators: registration ? registration.validators.map(validator => ({
@@ -71,7 +73,8 @@ export default {
               amount: 0
             })) : [],
             totalStaked: reward ? reward.calculated_reward.total_delegation : 0,
-            pendingRewards: reward ? reward.calculated_reward.reward : 0
+            pendingRewards: reward ? reward.calculated_reward.reward : 0,
+            isActive: !!registration
           };
         }
         return null;
@@ -82,36 +85,51 @@ export default {
     return {
       chains: [
         {
-          name: 'Cosmos Hub',
-          chainId: 'test-0',
-          image: require('@/assets/chains/cosmos.svg'),
-          costToAutocompound: '0.1 ATOM',
-          lastAutocompound: '1 hour ago'
-        },
-        {
           name: 'Osmosis',
-          chainId: 'test-1',
+          chainId: 'test-0',
           image: require('@/assets/chains/osmosis.svg'),
           costToAutocompound: '0.05 OSMO',
           lastAutocompound: '2 hours ago'
         },
         {
           name: 'Neutron',
-          chainId: 'test-2',
+          chainId: 'test-1',
           image: require('@/assets/chains/neutron.png'),
           costToAutocompound: '0.01 NTRN',
           lastAutocompound: '3 hours ago'
+        },
+        {
+          name: 'Cosmos Hub',
+          chainId: 'test-2',
+          image: require('@/assets/chains/cosmos.svg'),
+          costToAutocompound: '0.1 ATOM',
+          lastAutocompound: '1 hour ago'
         }
       ]
     };
   },
+  methods: {
+    async fetchData() {
+      this.error = false;
+      try {
+        await this.$store.dispatch('fetchAppSupportedChains');
+        await this.$store.dispatch('fetchUserData');
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    },
+    retryFetchData() {
+      this.retryCount = 0;
+      this.fetchData();
+    }
+  },
   created() {
-    this.$store.dispatch('fetchAppSupportedChains');
-    this.$store.dispatch('fetchUserData');
+    this.fetchData();
   }
 };
 </script>
 
 <style lang="scss" scoped>
 @import "@/assets/style.scss";
+
 </style>

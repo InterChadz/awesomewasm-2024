@@ -4,10 +4,13 @@ import {CosmWasmClient, SigningCosmWasmClient} from "@cosmjs/cosmwasm-stargate";
 import {Registry} from "@cosmjs/proto-signing";
 import {cosmosAminoConverters, cosmosProtoRegistry, cosmwasmAminoConverters, cosmwasmProtoRegistry} from "osmojs";
 import mxChain from "../mixin/chain";
+import axios from "axios";
 
 const mxChainUtils = {
   methods: mxChain.methods
 };
+
+const chainsApis = JSON.parse(process.env.VUE_APP_CHAINS_APIS)
 
 export default createStore({
   /**
@@ -21,7 +24,8 @@ export default createStore({
       balance: null,
       contractBalance: null,
       registrations: [],
-      rewards: null
+      rewards: null,
+      delegations: []
     },
 
     app: {
@@ -57,6 +61,10 @@ export default createStore({
 
     userContractBalance(state) {
       return state.user.contractBalance;
+    },
+
+    userDelegations(state) {
+      return state.user.delegations;
     },
 
     appConfig(state) {
@@ -95,6 +103,10 @@ export default createStore({
 
     setUserRewards(state, rewards) {
       state.user.rewards = rewards;
+    },
+
+    setUserDelegations(state, delegations) {
+      state.user.delegations = delegations;
     },
 
     // App
@@ -218,9 +230,31 @@ export default createStore({
           calculated_reward: calculateReward
         });
       }
-
-
       commit("setUserRewards", userRewards);
+    },
+
+    async fetchUserDelegations({state, commit}) {
+      if (!state.user.address || !state.user.querier) {
+        console.error("Address or Querier is not initialized");
+        return;
+      }
+
+      let delegations = []
+      for (const chain of state.app.supportedChains) {
+        const userRegistration = state.user.registrations.find(r => r.chain_id === chain.chain_id);
+
+        const chainApi = chainsApis.find(c => c.chainId === chain.chain_id);
+        const response = await axios.get(`${chainApi.rest}/${userRegistration.remote_address}`)
+        if (!chain) {
+          continue
+        }
+        delegations.push({
+          chain_id: chain.chain_id,
+          delegations: response.data.delegation_responses
+        })
+      }
+
+      commit("setUserDelegations", delegations);
     },
 
     // #[returns(ConfigResponse)]

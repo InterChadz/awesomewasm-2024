@@ -47,8 +47,14 @@ export default {
       //console.error(e)
     }
     await this.fetchOnce();
+    await this.fetchInterval()
     // we ensure that till this moment rest of UI is kept idle
     this.isBusy = false;
+
+    // Set auto-fetch interval
+    this.intervalId = setInterval(() => {
+      this.fetchInterval();
+    }, this.intervalTimeout);
   },
 
   unmounted() {

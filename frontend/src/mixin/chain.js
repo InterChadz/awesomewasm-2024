@@ -54,7 +54,9 @@ const mxChain = {
           sender: this.userAddress,
           contract: process.env.VUE_APP_CONTRACT,
           msg: toUtf8(JSON.stringify({
-            autocompound: {},
+            autocompound: {
+              delegators_amount: 100
+            },
           })),
           funds: [],
         }

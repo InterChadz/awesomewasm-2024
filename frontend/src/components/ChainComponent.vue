@@ -4,26 +4,34 @@
       <div class="col-md-6">
         <div class="chain-header">
           <span class="badge badge-primary">
-            <img :src="chainImage" alt="Chain Image" class="chain-image">{{ chainName }}
+            <img :src="`/chains/${chain.chain_id}.png`" :alt="Icon" class="chain-image">{{ chain.chain_id }}
           </span>
+
           <div class="restaking-toggle">
-            <span class="toggle-label">Restaking Enabled: </span>
+            <span class="toggle-label">User registered: </span>
             <label class="switch">
-              <input type="checkbox" :checked="restakingEnabled" :disabled="isActive" @change="handleToggle">
+              <input type="checkbox" :checked="isUserRegistered" :disabled="isUserRegistered"
+                     @change.prevent="onChangeSwitch">
               <span class="slider round"></span>
             </label>
           </div>
         </div>
+
         <div class="chain-info">
-          <p><b>Cost to compound: </b>
-          {{ costToAutocompound }}</p>
-          <p><b>Last (auto)compound executed: </b>
-          {{ lastAutocompound }}</p>
+          <ul class="list-unstyled">
+            <li>Autocompound Fee: {{ costToAutocompound }}</li>
+            <li>Last (auto)compound: {{ costToAutocompound }}</li>
+          </ul>
+        </div>
+
+        <div class="action-buttons p-3">
+          <button @click="compound">Compound</button>
+          <!-- <button @click="withdrawStaked" disabled="true">Withdraw All</button>
+          <button @click="withdrawRewards" disabled="true">Withdraw Rewards</button> -->
         </div>
       </div>
       <div class="col-md-6">
-        <ChainStakingComponent v-if="isActive" :stakedValidators="stakedValidators" :pendingRewards="pendingRewards" :totalStaked="totalStaked" />
-        <NotActiveComponent v-else />
+        <ChainStakingComponent :chain="chain"/>
       </div>
     </div>
   </div>
@@ -31,79 +39,54 @@
 
 <script>
 import ChainStakingComponent from '@/components/ChainStakingComponent.vue';
-import NotActiveComponent from '@/components/NotActiveComponent.vue';
 import mxChain from '@/mixin/chain';
 import mxToast from "@/mixin/toast";
+import {mapActions, mapGetters} from "vuex";
 
 export default {
   name: 'ChainComponent',
+
   mixins: [mxChain, mxToast],
+
   components: {
     ChainStakingComponent,
-    NotActiveComponent
   },
-  props: {
-    chainName: String,
-    chainId: String,
-    chainImage: String,
-    costToAutocompound: String,
-    lastAutocompound: String,
-    stakedValidators: Array,
-    totalStaked: Number,
-    pendingRewards: Number,
-    isActive: Boolean
-  },
-  data() {
-    return {
-      restakingEnabled: this.isActive,
-      chains: JSON.parse(process.env.VUE_APP_CHAINS_APIS)
-    };
-  },
-  methods: {
-    async handleToggle(event) {
-      if (!this.chainId || !this.userAddress) {
-        console.error("Required variables are missing.");
-        event.target.checked = false;
-        return;
-      }
-      let validators = await this.fetchDelegations(this.chainId, this.userAddress); // TODO Get validators from the chain
-      if (event.target.checked) {
-        try {
-          await this.registerUser(this.chainId, this.userAddress, validators);
-          this.toast.success("User registered successfully.");
-          this.restakingEnabled = true;
-        } catch (error) {
-          console.error("Error registering user:", error);
-          this.toast.error("Failed to register user.");
-          this.restakingEnabled = false;
-          event.target.checked = false;
-        }
-      } else {
-        // Prevent switching off if already active
-        event.target.checked = true;
-      }
-    },
-    async fetchDelegations(chainId, userAddress) {
-      const chain = this.chains.rest.find(chain => chain.chainId === chainId);
-      if (!chain) {
-        console.error(`Chain with id ${chainId} not found.`);
-        return [];
-      }
 
+  props: {
+    chain: {
+      type: Object,
+      required: true
+    }
+  },
+
+  computed: {
+    ...mapGetters(['userRegistrations', 'userAddress', 'userDelegations']),
+
+    isUserRegistered() {
+      return this.userRegistrations.some(registration => registration.chain_id === this.chain.chain_id);
+    }
+  },
+
+  methods: {
+    ...mapActions(['fetchUserData']),
+
+    async onChangeSwitch() {
       try {
-        const response = await fetch(`${chain.url}/${userAddress}`);
-        const data = await response.json();
-        console.log(data); // Log the data or handle it as needed
-        return data.delegation_responses.map(response => response.delegation.delegator_address);
+        await this.registerUser(this.chainId, this.userAddress, this.userDelegations);
+        this.toast.success("User registered successfully.");
+        await this.fetchUserData()
       } catch (error) {
-        console.error("Error fetching delegations:", error);
-        return [];
+        this.toast.error("Failed to register user.");
       }
     },
-    async getDelegatorAddresses(chainId, userAddress) {
-      const delegatorAddresses = await this.fetchDelegations(chainId, userAddress);
-      console.log(delegatorAddresses); // Log the addresses or handle them as needed
-      return delegatorAddresses;
+
+    async compound() {
+      try {
+        await this.autocompound();
+        this.toast.success("Rewards compounded successfully.");
+      } catch (error) {
+        this.toast.error("Failed to compound rewards.");
+      }
     }
   }
 };

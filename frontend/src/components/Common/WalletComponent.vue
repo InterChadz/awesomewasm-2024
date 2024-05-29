@@ -8,7 +8,7 @@
 </template>
 
 <script>
-import {mapGetters} from "vuex";
+import {mapActions, mapGetters} from "vuex";
 import mxApp from "@/mixin/app";
 
 export default {
@@ -21,8 +21,12 @@ export default {
   },
 
   methods: {
+    ...mapActions(['initUser', 'fetchUserData', "fetchUserDelegations"]),
+
     async onClickConnect() {
-      await this.fetchOnce()
+      await this.initUser()
+      await this.fetchUserData();
+      await this.fetchUserDelegations()
     }
   }
 }

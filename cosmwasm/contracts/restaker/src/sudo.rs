@@ -1,7 +1,7 @@
-use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, DepsMut, entry_point, Env, Response, StdError, StdResult};
-use neutron_sdk::sudo::msg::{RequestPacket, SudoMsg};
 use crate::state::{ICA_PORT_ID_TO_CHAIN_ID, SUPPORTED_CHAINS};
+use cosmwasm_schema::cw_serde;
+use cosmwasm_std::{entry_point, Addr, DepsMut, Env, Response, StdError, StdResult};
+use neutron_sdk::sudo::msg::{RequestPacket, SudoMsg};
 
 #[cw_serde]
 struct OpenAckVersion {
@@ -42,8 +42,9 @@ fn sudo_open_ack(
     _counterparty_channel_id: String,
     counterparty_version: String,
 ) -> StdResult<Response> {
-    deps.api.debug(format!("WASMDEBUG: sudo_open_ack, port_id: {:?}", port_id).as_str());
-    
+    deps.api
+        .debug(format!("WASMDEBUG: sudo_open_ack, port_id: {:?}", port_id).as_str());
+
     // The version variable contains a JSON value with multiple fields,
     // including the generated account address.
     let parsed_version: Result<OpenAckVersion, _> =
@@ -51,9 +52,10 @@ fn sudo_open_ack(
 
     // Update the storage record associated with the interchain account.
     if let Ok(parsed_version) = parsed_version {
-        deps.api.debug(format!("WASMDEBUG: parsed_version: {:?}", parsed_version.clone()).as_str());
+        deps.api
+            .debug(format!("WASMDEBUG: parsed_version: {:?}", parsed_version.clone()).as_str());
         let chain_id = ICA_PORT_ID_TO_CHAIN_ID.load(deps.storage, port_id.clone())?;
-        
+
         SUPPORTED_CHAINS.update(
             deps.storage,
             chain_id.clone(),
@@ -68,8 +70,7 @@ fn sudo_open_ack(
             .add_attribute("action", "sudo_open_ack")
             .add_attribute("port_id", port_id)
             .add_attribute("chain_id", chain_id)
-            .add_attribute("address", parsed_version.address)
-        );
+            .add_attribute("address", parsed_version.address));
     }
 
     Err(StdError::generic_err("Can't parse counterparty_version"))
@@ -99,32 +100,40 @@ fn sudo_error(deps: DepsMut, request: RequestPacket, details: String) -> StdResu
 #[cfg(test)]
 mod tests {
     mod test_sudo_open_ack {
-        use cosmwasm_std::{Addr, coins};
-        use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-        use neutron_sdk::sudo::msg::SudoMsg;
         use crate::execute::execute;
         use crate::instantiate::instantiate;
         use crate::msg::{ExecuteMsg, InstantiateMsg};
         use crate::state::SUPPORTED_CHAINS;
         use crate::sudo::sudo;
+        use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+        use cosmwasm_std::{coins, Addr};
+        use neutron_sdk::sudo::msg::SudoMsg;
 
         #[test]
         fn test_sudo_open_ack() {
             let mut deps = mock_dependencies();
             let info = mock_info("creator", &coins(1000000, "untrn"));
 
-            instantiate(deps.as_mut(), mock_env(), info.clone(), InstantiateMsg{ 
-                admin: info.sender.to_string(),
-                neutron_register_ica_fee: 1000000,
-            }).unwrap();
+            instantiate(
+                deps.as_mut(),
+                mock_env(),
+                info.clone(),
+                InstantiateMsg {
+                    admin: info.sender.to_string(),
+                    neutron_register_ica_fee: 1000000,
+                },
+            )
+            .unwrap();
             let add_chain_msg = ExecuteMsg::AddSupportedChain {
                 chain_id: "chain_id".to_string(),
                 connection_id: "connection_id".to_string(),
             };
             execute(deps.as_mut(), mock_env(), info.clone(), add_chain_msg).unwrap();
-            let chain = SUPPORTED_CHAINS.load(deps.as_ref().storage, "chain_id".to_string()).unwrap();
+            let chain = SUPPORTED_CHAINS
+                .load(deps.as_ref().storage, "chain_id".to_string())
+                .unwrap();
             assert_eq!(chain.ica_address, None);
-            
+
             let open_ack_msg = SudoMsg::OpenAck {
                 port_id: chain.ica_port_id,
                 channel_id: "channel_id".to_string(),
@@ -132,8 +141,10 @@ mod tests {
                 counterparty_version: r#"{"version":"version","controller_connection_id":"controller_connection_id","host_connection_id":"host_connection_id","address":"icaaddress","encoding":"encoding","tx_type":"tx_type"}"#.to_string(),
             };
             sudo(deps.as_mut(), mock_env(), open_ack_msg).unwrap();
-            
-            let chain = SUPPORTED_CHAINS.load(deps.as_ref().storage, "chain_id".to_string()).unwrap();
+
+            let chain = SUPPORTED_CHAINS
+                .load(deps.as_ref().storage, "chain_id".to_string())
+                .unwrap();
             assert_eq!(chain.ica_address.unwrap(), Addr::unchecked("icaaddress"));
         }
     }

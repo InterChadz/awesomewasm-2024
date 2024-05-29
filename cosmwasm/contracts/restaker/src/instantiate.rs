@@ -1,10 +1,8 @@
-use cosmwasm_std::{
-    DepsMut, entry_point, Env, MessageInfo, Response,
-};
+use cosmwasm_std::{entry_point, DepsMut, Env, MessageInfo, Response};
 
 use crate::error::ContractError;
 use crate::msg::InstantiateMsg;
-use crate::state::{CONFIG, Config};
+use crate::state::{Config, CONFIG};
 
 #[entry_point]
 pub fn instantiate(
@@ -14,10 +12,15 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     let admin = deps.api.addr_validate(&msg.admin)?;
-    CONFIG.save(deps.storage, &Config {
-        admin,
-        neutron_register_ica_fee: msg.neutron_register_ica_fee,
-    }).unwrap();
+    CONFIG
+        .save(
+            deps.storage,
+            &Config {
+                admin,
+                neutron_register_ica_fee: msg.neutron_register_ica_fee,
+            },
+        )
+        .unwrap();
 
     Ok(Response::new())
 }
@@ -47,6 +50,9 @@ mod tests {
 
         let config = CONFIG.load(deps.as_ref().storage).unwrap();
         assert_eq!(config.admin, msg.admin);
-        assert_eq!(config.neutron_register_ica_fee, msg.neutron_register_ica_fee);
+        assert_eq!(
+            config.neutron_register_ica_fee,
+            msg.neutron_register_ica_fee
+        );
     }
 }

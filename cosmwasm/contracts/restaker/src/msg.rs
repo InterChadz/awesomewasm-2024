@@ -1,5 +1,7 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 
+use crate::state::Config;
+
 #[cw_serde]
 pub struct InstantiateMsg {
     pub admin: String,
@@ -8,13 +10,19 @@ pub struct InstantiateMsg {
 
 #[cw_serde]
 pub enum ExecuteMsg {
+    UpdateConfig {
+        config: Config,
+    },
     AddSupportedChain {
         chain_id: String,
         connection_id: String,
     },
     RegisterUser {
         registrations: Vec<UserChainRegistrationInput>,
-    }
+    },
+    TopupUserBalance {
+        // recipient: String, // TODO: nice to have thing
+    },
 }
 
 #[cw_serde]
@@ -25,18 +33,18 @@ pub enum QueryMsg {
         limit: Option<u64>,
         start_after: Option<String>,
     },
-    #[returns(GetUserRegistrationsResponse)]
+    #[returns(UserRegistrationsResponse)]
     UserRegistrations {
         address: String,
         limit: Option<u64>,
         start_after: Option<String>,
     },
-    #[returns(GetCalculatedRewardResponse)]
+    #[returns(CalculatedRewardResponse)]
     CalculateReward {
         address: String,
         chain_id: String,
         remote_address: String,
-    }
+    },
 }
 
 #[cw_serde]
@@ -66,11 +74,11 @@ pub struct UserChainResponse {
 }
 
 #[cw_serde]
-pub struct GetUserRegistrationsResponse {
+pub struct UserRegistrationsResponse {
     pub user_chain_registrations: Vec<UserChainResponse>,
 }
 
 #[cw_serde]
-pub struct GetCalculatedRewardResponse {
+pub struct CalculatedRewardResponse {
     pub reward: u128,
 }

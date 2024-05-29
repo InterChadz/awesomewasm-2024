@@ -15,6 +15,6 @@ cosmwasm-schema = "1.4.5"
 serde = { version = "1.0.203", features = ["derive"] }
 serde-json-wasm = { version = "1.0.1" }
 thiserror = "1.0.61"
-
+cw0 = "0.10.3"
 
 cw-multi-test = "1.1.0"

@@ -63,6 +63,10 @@ pub struct UserChainResponse {
     pub chain_id: String,
     pub address: String,
     pub validators: Vec<String>,
+
+    // Mostly for debugging, honestly
+    pub delegator_delegations_reply_id: u64,
+    pub delegator_delegations_icq_id: Option<u64>,
 }
 
 #[cw_serde]
@@ -72,5 +76,6 @@ pub struct GetUserRegistrationsResponse {
 
 #[cw_serde]
 pub struct GetCalculatedRewardResponse {
+    pub total_delegation: u128,
     pub reward: u128,
 }

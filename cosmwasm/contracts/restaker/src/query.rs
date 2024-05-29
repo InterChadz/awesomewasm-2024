@@ -1,5 +1,8 @@
 use cosmwasm_std::{Binary, Deps, entry_point, Env, Order, StdResult, to_json_binary};
 use cw_storage_plus::Bound;
+use interchain_queries::v047::queries::query_delegations;
+use neutron_sdk::bindings::query::NeutronQuery;
+use neutron_sdk::interchain_queries;
 
 use crate::msg::{ChainResponse, GetCalculatedRewardResponse, GetUserRegistrationsResponse, QueryMsg, SupportedChainsResponse, UserChainResponse};
 use crate::state::{Chain, SUPPORTED_CHAINS, user_chain_registrations};
@@ -7,16 +10,16 @@ use crate::state::{Chain, SUPPORTED_CHAINS, user_chain_registrations};
 pub const DEFAULT_LIMIT: u64 = 30;
 
 #[entry_point]
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps<NeutronQuery>, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::SupportedChains { limit, start_after } => to_json_binary(&query_supported_chains(deps, limit, start_after)?),
         QueryMsg::UserRegistrations { address, limit, start_after } => to_json_binary(&query_user_registrations(deps, address, limit, start_after)?),
-        QueryMsg::CalculateReward { address, chain_id, remote_address } => to_json_binary(&query_calculate_reward(deps, address, chain_id, remote_address)?), 
+        QueryMsg::CalculateReward { address, chain_id, remote_address } => to_json_binary(&query_calculate_reward(deps, env, address, chain_id, remote_address)?), 
     }
 }
 
 pub fn query_supported_chains(
-    deps: Deps,
+    deps: Deps<NeutronQuery>,
     limit: Option<u64>,
     start_after: Option<String>,
 ) -> StdResult<SupportedChainsResponse> {
@@ -35,7 +38,7 @@ pub fn query_supported_chains(
 }
 
 pub fn query_user_registrations(
-    deps: Deps,
+    deps: Deps<NeutronQuery>,
     address: String,
     limit: Option<u64>,
     _start_after: Option<String>, // TODO: Implement
@@ -52,7 +55,13 @@ pub fn query_user_registrations(
         .take(limit as usize)
         .filter_map(|item| {
             let user_chain_registration = item.unwrap().1;
-            Some(UserChainResponse { chain_id: user_chain_registration.chain_id, address: user_chain_registration.remote_address, validators: user_chain_registration.validators.clone()})
+            Some(UserChainResponse { 
+                chain_id: user_chain_registration.chain_id, 
+                address: user_chain_registration.remote_address, 
+                validators: user_chain_registration.validators.clone(),
+                delegator_delegations_reply_id: user_chain_registration.delegator_delegations_reply_id,
+                delegator_delegations_icq_id: user_chain_registration.delegator_delegations_icq_id,
+            })
         })
         .collect::<Vec<UserChainResponse>>();
     
@@ -60,28 +69,45 @@ pub fn query_user_registrations(
 }
 
 pub fn query_calculate_reward(
-    _deps: Deps,
-    _local_address: String,
-    _chain_id: String,
-    _remote_address: String,
+    deps: Deps<NeutronQuery>,
+    env: Env,
+    local_address: String,
+    chain_id: String,
+    remote_address: String,
 ) -> StdResult<GetCalculatedRewardResponse> {
-    Ok(GetCalculatedRewardResponse { reward: 42 })
+    let local_address = deps.api.addr_validate(&local_address)?;
+    let user_reg = user_chain_registrations().load(deps.storage, (local_address, chain_id, remote_address))?;
+    let icq_id = user_reg.delegator_delegations_icq_id.unwrap();
+    let response = query_delegations(deps, env, icq_id).unwrap();
+    
+    let mut total_delegation = 0;
+    response.delegations.iter().for_each(|delegation| {
+        deps.api.debug(&format!("Delegation: {:?}", delegation));
+        total_delegation += delegation.amount.amount.u128();
+    });
+    
+    
+    Ok(GetCalculatedRewardResponse {
+        total_delegation,
+        reward: 42 
+    })
 }
 
 #[cfg(test)]
 mod tests {
     mod test_query_supported_chains {
         use cosmwasm_std::{coins, from_json};
-        use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+        use cosmwasm_std::testing::{mock_env, mock_info};
 
         use crate::execute::execute;
         use crate::instantiate::instantiate;
         use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, SupportedChainsResponse};
         use crate::query::query;
+        use crate::testing::helpers::mock_neutron_dependencies;
 
         #[test]
         fn test_query_supported_chains() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_neutron_dependencies();
             let info = mock_info("creator", &coins(1000000, "untrn"));
 
             instantiate(deps.as_mut(), mock_env(), info.clone(), InstantiateMsg{ 
@@ -106,16 +132,17 @@ mod tests {
     
     mod test_query_user_registrations {
         use cosmwasm_std::{coins, from_json};
-        use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info, MockApi};
+        use cosmwasm_std::testing::{mock_env, mock_info, MockApi};
 
         use crate::execute::execute;
         use crate::instantiate::instantiate;
         use crate::msg::{ExecuteMsg, GetUserRegistrationsResponse, InstantiateMsg, QueryMsg, UserChainRegistrationInput};
         use crate::query::query;
+        use crate::testing::helpers::mock_neutron_dependencies;
 
         #[test]
         fn test_query_user_registrations() {
-            let mut deps = mock_dependencies();
+            let mut deps = mock_neutron_dependencies();
             let info = mock_info("creator", &coins(1000000, "untrn"));
 
             instantiate(deps.as_mut(), mock_env(), info.clone(), InstantiateMsg{

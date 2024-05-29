@@ -1,6 +1,6 @@
 use cosmos_sdk_proto::cosmos::{base::v1beta1::Coin, staking::v1beta1::MsgDelegate};
 use cosmos_sdk_proto::traits::Message;
-use cosmwasm_std::{Binary, StdError, SubMsg};
+use cosmwasm_std::{coins, Binary, StdError, SubMsg};
 use neutron_sdk::bindings::{
     msg::{IbcFee, NeutronMsg},
     types::ProtobufAny,
@@ -15,8 +15,9 @@ pub fn get_delegate_submsg(
     connection_id: String,
     delegator: String,
     validator: String,
-    amount: u128,
-    denom: String,
+    delegation_amount: u128,
+    delegation_denom: String,
+    relayer_fee: u128,
     timeout: Option<u64>,
 ) -> Result<SubMsg<NeutronMsg>, ContractError> {
     // Get the delegator address from the storage & form the Delegate message.
@@ -25,8 +26,8 @@ pub fn get_delegate_submsg(
         delegator_address: delegator,
         validator_address: validator,
         amount: Some(Coin {
-            denom,
-            amount: amount.to_string(),
+            denom: delegation_denom,
+            amount: delegation_amount.to_string(),
         }),
     };
 
@@ -54,9 +55,11 @@ pub fn get_delegate_submsg(
     // and here: https://docs.neutron.org/neutron/modules/feerefunder/overview
     // TODO_NICE: Relayers should be paid as the Keeper network addys!
     let fee = IbcFee {
-        recv_fee: vec![],    // must be empty
-        ack_fee: vec![],     // ack_fee: vec![CosmosCoin::new(100000u128, "untrn")],
-        timeout_fee: vec![], // timeout_fee: vec![CosmosCoin::new(100000u128, "untrn")],
+        recv_fee: vec![], // must be empty
+        // ack_fee: vec![],
+        ack_fee: coins(relayer_fee, "untrn"),
+        // timeout_fee: vec![],
+        timeout_fee: coins(relayer_fee, "untrn"),
     };
 
     // Form the neutron SubmitTx message containing the binary Delegate message.
@@ -64,7 +67,7 @@ pub fn get_delegate_submsg(
         connection_id,
         interchain_account_id.clone(),
         vec![delegate_msg],
-        "".to_string(),
+        "InterChadz ruleZ".to_string(),
         timeout.unwrap_or(DEFAULT_TIMEOUT_SECONDS),
         fee,
     );

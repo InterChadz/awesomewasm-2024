@@ -1,5 +1,6 @@
 use cosmwasm_std::{
     coin, coins, entry_point, BankMsg, DepsMut, Env, MessageInfo, Response, StdError, SubMsg,
+    Uint128,
 };
 use cw0::must_pay;
 use cw_storage_plus::PrefixBound;
@@ -318,23 +319,26 @@ pub fn autocompound(
     info: MessageInfo,
     delegators_amount: u64,
 ) -> Result<Response<NeutronMsg>, ContractError> {
+    // Iterate over all user_chain_registrations:
+    // sorted by next_compound_height ASC, with next_compound_height <= current_height, as much as delegators_amount.
+    // so we rely on the fact that the next_compound_height is updated after each autocompound and the next iteration we will have the next users to autocompound.
     let current_height = env.block.height;
-
-    // end bounds for the range query
-    let end = Some(PrefixBound::inclusive(current_height));
-
-    // Iterate over all user_chain_registrations with next_compound_height <= current_height
-
+    let end_bound = Some(PrefixBound::inclusive(current_height));
     let registrations = user_chain_registrations()
         .idx
         .next_compound_height
-        .prefix_range(deps.storage, None, end, cosmwasm_std::Order::Ascending)
+        .prefix_range(
+            deps.storage,
+            None,
+            end_bound,
+            cosmwasm_std::Order::Ascending,
+        )
         .map(|item| item.unwrap())
         .take(delegators_amount as usize)
         .collect::<Vec<_>>();
 
     let mut delegate_submsgs: Vec<SubMsg<NeutronMsg>> = vec![];
-    let mut total_fees: u128 = 0;
+    let mut keeper_fee: u128 = 0;
 
     for ((src_addr, dst_chain_id, dst_addr), registration) in registrations {
         let mut balance = USER_BALANCES
@@ -369,6 +373,11 @@ pub fn autocompound(
                 continue;
             }
 
+            let half_autocompound_cost = supported_chain
+                .autocompound_cost
+                .checked_div(2u128)
+                .unwrap();
+
             // Here we know that user can autocompound.
             // Get the delegate submsg accordingly.
             let submsg = get_delegate_submsg(
@@ -378,15 +387,16 @@ pub fn autocompound(
                 validator, // TODO: We should iter validators, querying the cumulated rewards foreach of them
                 calculate_reward.reward,
                 supported_chain.clone().denom,
+                half_autocompound_cost,
                 None, // TODO: timeout by Config struct, or default defined on helpers.rs?
             )?;
             delegate_submsgs.push(submsg);
 
             // Decrease in memory balance for the current user inside the validators iteration
             balance = balance
-                .checked_sub(supported_chain.autocompound_cost.into())
-                .unwrap(); // TODO_NICE: Better handle this unwrap
-            total_fees += supported_chain.autocompound_cost;
+                .checked_sub(Uint128::new(supported_chain.autocompound_cost))
+                .unwrap();
+            keeper_fee += half_autocompound_cost;
         }
 
         // Save the new USER_BALANCES for the current user
@@ -398,7 +408,7 @@ pub fn autocompound(
         // Bank message to send total_fees to info.sender keeper
         let bank_msg = BankMsg::Send {
             to_address: info.sender.to_string(),
-            amount: vec![coin(total_fees, "untrn")],
+            amount: vec![coin(keeper_fee, "untrn")],
         };
         Ok(Response::new()
             .add_attribute("action", "autocompound")

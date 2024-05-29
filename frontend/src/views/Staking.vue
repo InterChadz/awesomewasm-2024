@@ -1,27 +1,36 @@
 <template>
   <div class="staking-page">
-    <div class="balances d-flex">
-      <div class="col-md-4 d-flex">
-        <ToppedUpBalanceComponent :balance="toppedUpBalance" />
-      </div>
-      <div class="col-md-4 d-flex"> </div>
-      <div class="col-md-4 d-flex">
-        <WalletBalanceComponent :balance="walletBalance" />
-      </div>
+    <div v-if="loading" class="loading">
+      Loading data, please wait...
     </div>
+    <div v-else-if="error" class="error">
+      <p>Failed to load data. Please try again.</p>
+      <button @click="retryFetchData">Retry</button>
+    </div>
+    <div v-else>
+      <div class="balances d-flex">
+        <div class="col-md-4 d-flex">
+          <ToppedUpBalanceComponent :balance="toppedUpBalance" />
+        </div>
+        <div class="col-md-4 d-flex"> </div>
+        <div class="col-md-4 d-flex">
+          <WalletBalanceComponent :balance="walletBalance" />
+        </div>
+      </div>
 
-    <div class="chain-components">
-      <ChainComponent
-        v-for="chain in filteredChains"
-        :key="chain.name"
-        :chainName="chain.name"
-        :chainImage="chain.image"
-        :costToAutocompound="chain.costToAutocompound"
-        :lastAutocompound="chain.lastAutocompound"
-        :stakedValidators="chain.stakedValidators"
-        :totalStaked="chain.totalStaked"
-        :pendingRewards="chain.pendingRewards"
-      />
+      <div class="chain-components">
+        <ChainComponent
+          v-for="chain in filteredChains"
+          :key="chain.name"
+          :chainName="chain.name"
+          :chainImage="chain.image"
+          :costToAutocompound="chain.costToAutocompound"
+          :lastAutocompound="chain.lastAutocompound"
+          :stakedValidators="chain.stakedValidators"
+          :totalStaked="chain.totalStaked"
+          :pendingRewards="chain.pendingRewards"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -39,6 +48,7 @@ export default {
     WalletBalanceComponent,
     ChainComponent
   },
+  
   computed: {
     ...mapGetters(['userBalance', 'userContractBalance', 'userRegistrations', 'userRewards', 'appSupportedChains']),
     walletBalance() {

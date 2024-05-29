@@ -1,7 +1,8 @@
+use cosmos_sdk_proto::Any;
 use cosmos_sdk_proto::cosmos::{base::v1beta1::Coin, staking::v1beta1::MsgDelegate};
+use cosmos_sdk_proto::cosmos::authz::v1beta1::MsgExec;
 use cosmos_sdk_proto::traits::Message;
-use cosmwasm_std::{coins, Addr, Binary, Deps, Env, StdError, SubMsg, Order, StdResult};
-use cw_storage_plus::PrefixBound;
+use cosmwasm_std::{coins, Binary, Deps, Env, StdError, SubMsg, Order};
 use neutron_sdk::bindings::query::NeutronQuery;
 use neutron_sdk::bindings::{
     msg::{IbcFee, NeutronMsg},
@@ -9,7 +10,6 @@ use neutron_sdk::bindings::{
 };
 
 use crate::error::ContractError;
-use crate::msg::UserChainResponse;
 use crate::state::{user_chain_registrations, UserChainRegistration};
 
 const DEFAULT_TIMEOUT_SECONDS: u64 = 60 * 60 * 24 * 7 * 2; // 2 weeks TODO: this is a lot, how much? Or we just deprecate this and we always pass it from above.
@@ -21,7 +21,7 @@ pub fn get_due_user_chain_registrations(
 ) -> Result<Vec<UserChainRegistration>, ContractError> {
     let current_height = env.block.height;
     //let end_bound = Some(PrefixBound::inclusive(current_height));
-
+    
     let reggies = user_chain_registrations()
         .range(deps.storage, None, None, Order::Ascending)
         .filter_map(|item| {
@@ -52,6 +52,7 @@ pub fn get_due_user_chain_registrations(
 
 pub fn get_delegate_submsg(
     interchain_account_id: String,
+    interchain_account_address: String,
     connection_id: String,
     delegator: String,
     validator: String,
@@ -83,8 +84,27 @@ pub fn get_delegate_submsg(
     }
 
     // Put the serialized Delegate message to a types.Any protobuf message.
-    let delegate_msg = ProtobufAny {
+    let delegate_msg = Any {
         type_url: "/cosmos.staking.v1beta1.MsgDelegate".to_string(),
+        value: buf,
+    };
+   
+    let authz_exec_msg = MsgExec {
+        grantee: interchain_account_address,
+        msgs: vec![delegate_msg], 
+    };
+    let mut buf = Vec::new();
+    buf.reserve(authz_exec_msg.encoded_len());
+    
+    if let Err(e) = authz_exec_msg.encode(&mut buf) {
+        return Err(ContractError::Std(StdError::generic_err(format!(
+            "Error encoding AuthzExec message: {}",
+            e
+        ))));
+    }
+    
+    let authz_exec_msg = ProtobufAny {
+        type_url: "/cosmos.authz.v1beta1.MsgExec".to_string(),
         value: Binary::from(buf),
     };
 
@@ -106,7 +126,7 @@ pub fn get_delegate_submsg(
     let cosmos_msg = NeutronMsg::submit_tx(
         connection_id,
         interchain_account_id.clone(),
-        vec![delegate_msg],
+        vec![authz_exec_msg],
         "InterChadz ruleZ".to_string(),
         timeout.unwrap_or(DEFAULT_TIMEOUT_SECONDS),
         fee,

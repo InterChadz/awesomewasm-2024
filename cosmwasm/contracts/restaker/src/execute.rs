@@ -1,6 +1,5 @@
 use cosmwasm_std::{
     coin, coins, entry_point, BankMsg, DepsMut, Env, MessageInfo, Response, StdError, SubMsg,
-    Uint128,
 };
 use cw0::must_pay;
 use neutron_sdk::bindings::msg::NeutronMsg;
@@ -325,6 +324,8 @@ pub fn autocompound(
     // sorted by next_compound_height ASC, with next_compound_height <= current_height, as much as delegators_amount.
     // so we rely on the fact that the next_compound_height is updated after each autocompound and the next iteration we will have the next users to autocompound.
     let registrations = get_due_user_chain_registrations(&deps.as_ref(), &env, delegators_amount)?;
+    
+    deps.api.debug(format!("WASMDEBUG: registrations: {:?}", registrations).as_str());
 
     let mut delegate_submsgs: Vec<SubMsg<NeutronMsg>> = vec![];
     let mut keeper_fee: u128 = 0;
@@ -341,9 +342,9 @@ pub fn autocompound(
         // Since a user could have staking position with more than one validator, we iterate over all of them
         for validator in registration.clone().validators {
             // Only if the given user has enough topped up balance to cover protocol fees
-            if balance.u128() < supported_chain.autocompound_cost {
+            /*if balance.u128() < supported_chain.autocompound_cost {
                 continue;
-            }
+            }*/
 
             // TODO: Is it time to autocompound for that user based on the latest height we did, and the threshold we want? Add this to Config struct
 
@@ -360,6 +361,9 @@ pub fn autocompound(
             // If there are not enough rewards to compound, continue
             // TODO_NICE: This could be use a threshold like at least > 0.1 (100000 udenom). Make this configurable.
             if calculate_reward.reward.first().unwrap().amount.is_zero() {
+                deps.api.debug(format!("WASMDEBUG: No rewards to autocompound for user: {}", registration.clone().local_address).as_str());
+                deps.api.debug(format!("WASMDEBUG: No rewards to autocompound for validator: {}", validator).as_str());
+                deps.api.debug(format!("WASMDEBUG: No rewards to autocompound for chain: {}", registration.clone().chain_id).as_str());
                 continue;
             }
 
@@ -372,6 +376,7 @@ pub fn autocompound(
             // Get the delegate submsg accordingly.
             let submsg = get_delegate_submsg(
                 supported_chain.clone().ica_id,
+                supported_chain.clone().ica_address.unwrap().to_string(), 
                 supported_chain.clone().connection_id,
                 registration.clone().remote_address,
                 validator, // TODO: We should iter validators, querying the cumulated rewards foreach of them
@@ -383,14 +388,14 @@ pub fn autocompound(
             delegate_submsgs.push(submsg);
 
             // Decrease in memory balance for the current user inside the validators iteration
-            balance = balance
+            /*balance = balance
                 .checked_sub(Uint128::new(supported_chain.autocompound_cost))
-                .unwrap();
+                .unwrap();*/
             keeper_fee += half_autocompound_cost;
         }
 
         // Save the new USER_BALANCES for the current user
-        USER_BALANCES.save(deps.storage, registration.clone().local_address, &balance)?;
+        //USER_BALANCES.save(deps.storage, registration.clone().local_address, &balance)?;
     }
 
     // Return a response only if there are any msgs to send, otherwise throw a ContractError.
@@ -640,84 +645,103 @@ mod tests {
         }
     }
 
-    // mod test_autocompound {
-    //     use cosmwasm_std::testing::{mock_env, mock_info};
-    //     use cosmwasm_std::{coins, Uint128};
+    /*mod test_autocompound {
+        use cosmwasm_std::testing::{mock_env, mock_info};
+        use cosmwasm_std::{coins, Uint128};
 
-    //     use crate::execute::execute;
-    //     use crate::instantiate::instantiate;
-    //     use crate::msg::{ExecuteMsg, InstantiateMsg};
-    //     use crate::state::{Chain, SUPPORTED_CHAINS, USER_BALANCES};
-    //     use crate::testing::helpers::mock_neutron_dependencies;
+        use crate::execute::execute;
+        use crate::instantiate::instantiate;
+        use crate::msg::{ExecuteMsg, InstantiateMsg};
+        use crate::state::{Chain, SUPPORTED_CHAINS, USER_BALANCES, user_chain_registrations};
+        use crate::testing::helpers::mock_neutron_dependencies;
 
-    //     #[test]
-    //     fn test_autocompound() {
-    //         let mut deps = mock_neutron_dependencies();
-    //         let creator_info = mock_info("creator", &coins(1000000, "untrn"));
+        #[test]
+        fn test_autocompound() {
+            let mut deps = mock_neutron_dependencies();
+            let creator_info = mock_info("creator", &coins(1000000, "untrn"));
 
-    //         instantiate(
-    //             deps.as_mut(),
-    //             mock_env(),
-    //             creator_info.clone(),
-    //             InstantiateMsg {
-    //                 admin: creator_info.sender.to_string(),
-    //                 neutron_register_ica_fee: 1000000,
-    //                 autocompound_threshold: 100,
-    //             },
-    //         )
-    //         .unwrap();
+            instantiate(
+                deps.as_mut(),
+                mock_env(),
+                creator_info.clone(),
+                InstantiateMsg {
+                    admin: creator_info.sender.to_string(),
+                    neutron_register_ica_fee: 1000000,
+                    autocompound_threshold: 100,
+                },
+            )
+            .unwrap();
 
-    //         let add_supported_chain_msg = ExecuteMsg::AddSupportedChain {
-    //             chain_id: "chain_id".to_string(),
-    //             connection_id: "connection_id".to_string(),
-    //             denom: "denom".to_string(),
-    //             autocompound_cost: 100000,
-    //         };
-    //         execute(
-    //             deps.as_mut(),
-    //             mock_env(),
-    //             creator_info.clone(),
-    //             add_supported_chain_msg,
-    //         )
-    //         .unwrap();
+            let add_supported_chain_msg = ExecuteMsg::AddSupportedChain {
+                chain_id: "chain_id".to_string(),
+                connection_id: "connection_id".to_string(),
+                denom: "denom".to_string(),
+                autocompound_cost: 100000,
+            };
+            execute(
+                deps.as_mut(),
+                mock_env(),
+                creator_info.clone(),
+                add_supported_chain_msg,
+            )
+            .unwrap();
 
-    //         let local_user_info = mock_info("local_user", &coins(1000000, "untrn"));
+            let local_user_info = mock_info("local_user", &coins(1000000, "untrn"));
 
-    //         let chain = Chain {
-    //             connection_id: "connection_id".to_string(),
-    //             ica_id: "ica_id".to_string(),
-    //             ica_port_id: "ica_port_id".to_string(),
-    //             autocompound_cost: 100000,
-    //             denom: "denom".to_string(),
-    //             ica_address: None,
-    //             ica_error: None,
-    //         };
-    //         SUPPORTED_CHAINS
-    //             .save(deps.as_mut().storage, "chain_id".to_string(), &chain)
-    //             .unwrap();
+            let chain = Chain {
+                connection_id: "connection_id".to_string(),
+                ica_id: "ica_id".to_string(),
+                ica_port_id: "ica_port_id".to_string(),
+                autocompound_cost: 100000,
+                denom: "denom".to_string(),
+                ica_address: None,
+                ica_error: None,
+            };
+            SUPPORTED_CHAINS
+                .save(deps.as_mut().storage, "chain_id".to_string(), &chain)
+                .unwrap();
 
-    //         USER_BALANCES
-    //             .save(
-    //                 deps.as_mut().storage,
-    //                 local_user_info.sender,
-    //                 &Uint128::new(1000000),
-    //             )
-    //             .unwrap();
+            USER_BALANCES
+                .save(
+                    deps.as_mut().storage,
+                    local_user_info.clone().sender,
+                    &Uint128::new(1000000),
+                )
+                .unwrap();
 
-    //         // TOOD: Mock rewards on dst_chain
-    //         // let remote_user_info = mock_info("remote_user", &coins(1000000, "untrn"));
+            user_chain_registrations().save(
+                deps.as_mut().storage,
+                (
+                    local_user_info.clone().sender,
+                    "chain_id".to_string(),
+                    "remote_user".to_string(),
+                ),
+                &crate::state::UserChainRegistration {
+                    local_address: local_user_info.sender,
+                    chain_id: "chain_id".to_string(),
+                    remote_address: "remote_user".to_string(),
+                    validators: vec!["validator".to_string()],
+                    delegator_delegations_reply_id: 1,
+                    delegator_delegations_icq_id: Some(1337),
+                    next_compound_height: 1,
+                },
+            ).unwrap();
+            
+            
+            // TOOD: Mock rewards on dst_chain
+           // let remote_user_info = mock_info("remote_user", &coins(1000000, "untrn"));
 
-    //         let keeper_info = mock_info("keeper", &vec![]);
-    //         let res = execute(
-    //             deps.as_mut(),
-    //             mock_env(),
-    //             keeper_info.clone(),
-    //             ExecuteMsg::Autocompound {
-    //                 delegators_amount: 1,
-    //             },
-    //         )
-    //         .unwrap();
-    //         assert_eq!(0, res.messages.len());
-    //     }
-    // }
+            let keeper_info = mock_info("keeper", &vec![]);
+            let res = execute(
+                deps.as_mut(),
+                mock_env(),
+                keeper_info.clone(),
+                ExecuteMsg::Autocompound {
+                    delegators_amount: 1,
+                },
+            )
+            .unwrap();
+            assert_eq!(0, res.messages.len());
+        }
+    }*/
 }

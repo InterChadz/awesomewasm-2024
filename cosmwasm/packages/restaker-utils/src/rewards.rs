@@ -1,19 +1,46 @@
 use std::{collections::HashMap, str::FromStr};
+use std::fmt::format;
 
-use cosmwasm_std::{Coin, Decimal256, Env, StdError, StdResult, Uint128};
+use cosmwasm_std::{Coin, Decimal256, Deps, Env, StdError, StdResult, Uint128, Uint256};
 
 use crate::types::{DelegatorStartingInfo, ValidatorHistoricalRewards};
 
 pub fn calculate_delegation_rewards(
     env: Env,
+    deps: Deps,
     starting_info: DelegatorStartingInfo,
     // slash_events: &[(u64, Decimal)],
     current_shares: Decimal256,   // the user shares
-    validator_shares: Decimal256, // all the delegators total amount of shares staked to the validator
+    all_shares: Decimal256, // all the delegators total amount of shares staked to the validator
     validator_tokens: Uint128,
     starting_val_hist_rewards: ValidatorHistoricalRewards,
     ending_val_hist_rewards: ValidatorHistoricalRewards,
 ) -> StdResult<Vec<Coin>> {
+    deps.api.debug(format!(
+        "calculate_delegation_rewards: starting_info: {:?}",
+        starting_info,
+    ).as_str());
+    deps.api.debug(format!(
+        "calculate_delegation_rewards: current_shares: {:?}",
+        current_shares,
+    ).as_str());
+    deps.api.debug(format!(
+        "calculate_delegation_rewards: validator_shares: {:?}",
+        all_shares,
+    ).as_str());
+    deps.api.debug(format!(
+        "calculate_delegation_rewards: validator_tokens: {:?}",
+        validator_tokens,
+    ).as_str());
+    deps.api.debug(format!(
+        "calculate_delegation_rewards: starting_val_hist_rewards: {:?}",
+        starting_val_hist_rewards,
+    ).as_str());
+    deps.api.debug(format!(
+        "calculate_delegation_rewards: ending_val_hist_rewards: {:?}",
+        ending_val_hist_rewards,
+    ).as_str());
+    
     // init rewards to zero
     let mut rewards: Vec<Coin> = vec![];
     let ending_height = env.block.height;
@@ -27,7 +54,6 @@ pub fn calculate_delegation_rewards(
 
     // fetch starting info for delegation
     let starting_period = starting_info.previous_period; // it should be mut if slashing calculation is implemented
-    let stake = starting_info.stake;
 
     // // Iterate through slashes and withdraw with calculated staking for
     // // distribution periods. These period offsets are dependent on *when* slashes
@@ -66,9 +92,10 @@ pub fn calculate_delegation_rewards(
     // equal to current stake here. We cannot use Equals because stake is truncated
     // when multiplied by slash fractions (see above). We could only use equals if
     // we had arbitrary-precision rationals.
-    let current_stake = tokens_from_shares(current_shares, validator_tokens, validator_shares);
+    let current_stake = tokens_from_shares(current_shares, validator_tokens, all_shares);
 
-    let mut stake_decimal = Decimal256::from_str(&stake)?;
+    let stake = Uint256::from_str(&starting_info.stake)?;
+    let mut stake_decimal = Decimal256::from_atomics(stake, 18).unwrap();
 
     // Final stake sanity check
     if stake_decimal > current_stake {
@@ -117,6 +144,12 @@ pub fn calculate_delegation_rewards(
             stake_decimal,
         )?,
     );
+    
+    // Clean up amounts to the correct precision
+    for coin in &mut rewards {
+        let amount_as_dec = Decimal256::from_atomics(coin.amount.u128(), 18).unwrap();
+        coin.amount = Uint128::try_from(amount_as_dec.to_uint_floor())?;
+    }
 
     Ok(rewards)
 }
@@ -201,12 +234,12 @@ fn calculate_delegation_rewards_between(
 fn tokens_from_shares(
     shares: Decimal256,           // the user shares. originally an sdk.Dec type in Go
     validator_tokens: Uint128, // tokens define the delegated tokens (incl. self-delegation).
-    delegator_shares: Decimal256, // delegator_shares defines total shares issued to a validator's delegators. originally an sdk.Dec type in Go.
+    all_shares: Decimal256, // all_shares defines total shares issued to a validator's delegators. originally an sdk.Dec type in Go.
 ) -> Decimal256 {
-    if delegator_shares.is_zero() {
+    if all_shares.is_zero() {
         Decimal256::zero()
     } else {
-        shares * Decimal256::from_atomics(validator_tokens.u128(), 0).unwrap() / delegator_shares
+        shares * Decimal256::from_atomics(validator_tokens.u128(), 0).unwrap() / all_shares
     }
 }
 

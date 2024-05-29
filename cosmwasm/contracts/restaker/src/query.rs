@@ -138,14 +138,14 @@ pub fn query_calculate_reward(
                        user_query_data.validator_historical_rewards.len()
         ).as_str());
 
-    let rewards = calculate_rewards(env, user_query_data)?;
+    let rewards = calculate_rewards(env, deps, user_query_data)?;
 
     Ok(GetCalculatedRewardResponse {
         rewards,
     })
 }
 
-fn calculate_rewards(env: Env, user_query_data: UserQueryData) -> Result<Vec<RewardResponse>, StdError> {
+fn calculate_rewards(env: Env, deps: Deps<NeutronQuery>, user_query_data: UserQueryData) -> Result<Vec<RewardResponse>, StdError> {
     let mut rewards: Vec<RewardResponse> = vec![];
     for delegation in user_query_data.delegations.iter() {
         let delegator_starting_info = user_query_data.delegator_starting_infos.iter().find(|dsi| dsi.validator == delegation.validator_address).unwrap();
@@ -163,6 +163,7 @@ fn calculate_rewards(env: Env, user_query_data: UserQueryData) -> Result<Vec<Rew
         let validator_current_rewards = user_query_data.validator_current_rewards.iter().find(|vcr| vcr.validator == delegation.validator_address).unwrap();
         let calculated_rewards = calculate_delegation_rewards(
             env.clone(),
+            deps.into_empty(),
             UtilsDelegatorStartingInfo {
                 height: delegator_starting_info.clone().height,
                 stake: delegator_starting_info.clone().stake,
@@ -350,10 +351,11 @@ mod tests {
     }
 
     mod test_calculate_rewards {
-        use cosmwasm_std::Coin;
+        use cosmwasm_std::{Coin, Uint128};
         use cosmwasm_std::testing::mock_env;
         use crate::icq::reconstruct::{Delegation, DelegatorStartingInfoWithValidator, UserQueryData, Validator, ValidatorCurrentRewards, ValidatorHistoricalRewards};
         use crate::query::calculate_rewards;
+        use crate::testing::helpers::mock_neutron_dependencies;
 
         #[test]
         fn test_calculate_rewards() {
@@ -437,8 +439,14 @@ mod tests {
                 ],
             };
 
-            let rewards = calculate_rewards(mock_env(), user_query_data).unwrap();
+            let deps = mock_neutron_dependencies();
+
+            let rewards = calculate_rewards(mock_env(), deps.as_ref(), user_query_data).unwrap();
             assert_eq!(rewards.len(), 1);
+            assert_eq!(rewards[0].validator, "cosmosvaloper18hl5c9xn5dze2g50uaw0l2mr02ew57zk0auktn");
+            assert_eq!(rewards[0].reward.len(), 1);
+            assert_eq!(rewards[0].reward[0].denom, "uatom");
+            assert_eq!(rewards[0].reward[0].amount, Uint128::new(2444866473));
         }
     }
 

@@ -21,8 +21,12 @@ export default createStore({
       balance: null,
     },
 
-    appConfig: null,
-    appState: null,
+    app: {
+      config: null,
+      supportedChains: [],
+      userRegistrations: [],
+      calculateReward: null
+    }
   },
 
   getters: {
@@ -43,12 +47,12 @@ export default createStore({
     },
 
     appConfig(state) {
-      return state.appConfig;
+      return state.app.config;
     },
 
-    appState(state) {
-      return state.appState;
-    },
+    appSupportedChains(state) {
+      return state.app.supportedChains
+    }
   },
 
   mutations: {
@@ -71,11 +75,11 @@ export default createStore({
     // App
 
     setAppConfig(state, appConfig) {
-      state.appConfig = appConfig;
+      state.app.config = appConfig;
     },
 
-    setAppState(state, appState) {
-      state.appState = appState;
+    setAppSupportedChains(state, appConfig) {
+      state.app.supportedChains = appConfig;
     },
   },
 
@@ -143,22 +147,51 @@ export default createStore({
       // Use CosmWasmClient for the query
       const data = await state.user.querier.queryContractSmart(
         process.env.VUE_APP_CONTRACT,
-        {app_config: {}}
+        {config: {}}
       );
       commit("setAppConfig", data.config);
     },
 
-    async fetchAppState({state, commit}) {
+    async fetchAppSupportedChains({state, commit}) {
       if (!state.user.querier) {
         console.error("Querier is not initialized");
         return;
       }
 
+      // Use CosmWasmClient for the query
       const data = await state.user.querier.queryContractSmart(
         process.env.VUE_APP_CONTRACT,
-        {app_state: {}}
+        {supported_chains: {}}
       );
-      commit("setAppState", data.state);
+      commit("setAppSupportedChains", data.chains);
+    },
+
+    async fetchAppUserRegistrations({state, commit}) {
+      if (!state.user.querier) {
+        console.error("Querier is not initialized");
+        return;
+      }
+
+      // Use CosmWasmClient for the query
+      const data = await state.user.querier.queryContractSmart(
+        process.env.VUE_APP_CONTRACT,
+        {user_registrations: {}}
+      );
+      commit("setAppUserRegistrations", data.registrations);
+    },
+
+    async fetchAppCalculateReward({state, commit}) {
+      if (!state.user.querier) {
+        console.error("Querier is not initialized");
+        return;
+      }
+
+      // Use CosmWasmClient for the query
+      const data = await state.user.querier.queryContractSmart(
+        process.env.VUE_APP_CONTRACT,
+        {calculate_reward: {}}
+      );
+      commit("setAppCalculateReward", data.reward);
     }
   },
 

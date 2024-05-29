@@ -1,5 +1,8 @@
-use cosmwasm_std::{coins, entry_point, DepsMut, Env, MessageInfo, Response, StdError, SubMsg};
+use cosmwasm_std::{
+    coin, coins, entry_point, BankMsg, DepsMut, Env, MessageInfo, Response, StdError, SubMsg,
+};
 use cw0::must_pay;
+use cw_storage_plus::PrefixBound;
 use interchain_queries::v047::register_queries::new_register_delegator_delegations_query_msg;
 use neutron_sdk::bindings::msg::NeutronMsg;
 use neutron_sdk::bindings::query::NeutronQuery;
@@ -58,7 +61,9 @@ pub fn execute(
         ),
         ExecuteMsg::RegisterUser { registrations } => register_user(env, deps, info, registrations),
         ExecuteMsg::TopupUserBalance {} => topup_user_balance(deps, env, info),
-        ExecuteMsg::Autocompound {} => autocompound(deps, env, info),
+        ExecuteMsg::Autocompound { delegators_amount } => {
+            autocompound(deps, env, info, delegators_amount)
+        }
     }
 }
 
@@ -310,21 +315,30 @@ pub fn topup_user_balance(
 pub fn autocompound(
     deps: DepsMut<NeutronQuery>,
     env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
+    delegators_amount: u64,
 ) -> Result<Response<NeutronMsg>, ContractError> {
-    // Iterate over all user_chain_registrations and autocompound
+    let current_height = env.block.height;
+
+    // end bounds for the range query
+    let end = Some(PrefixBound::inclusive(current_height));
+
+    // Iterate over all user_chain_registrations with next_compound_height <= current_height
+
     let registrations = user_chain_registrations()
-        .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
+        .idx
+        .next_compound_height
+        .prefix_range(deps.storage, None, end, cosmwasm_std::Order::Ascending)
         .map(|item| item.unwrap())
+        .take(delegators_amount as usize)
         .collect::<Vec<_>>();
 
-    let mut msgs: Vec<NeutronMsg> = vec![];
-
-    // TODO: We have to paginate that, and do it in many tx calls so we need a state to keep track of the last height we did this
+    let mut delegate_submsgs: Vec<SubMsg<NeutronMsg>> = vec![];
+    let mut total_fees: u128 = 0;
 
     for ((src_addr, dst_chain_id, dst_addr), registration) in registrations {
-        let balance = USER_BALANCES
-            .load(deps.storage, src_addr)
+        let mut balance = USER_BALANCES
+            .load(deps.storage, src_addr.clone())
             .unwrap_or_default();
 
         let supported_chain = SUPPORTED_CHAINS
@@ -357,7 +371,7 @@ pub fn autocompound(
 
             // Here we know that user can autocompound.
             // Get the delegate submsg accordingly.
-            let cosmos_msg = get_delegate_submsg(
+            let submsg = get_delegate_submsg(
                 supported_chain.clone().ica_id,
                 supported_chain.clone().connection_id,
                 dst_addr.clone(),
@@ -366,16 +380,30 @@ pub fn autocompound(
                 supported_chain.clone().denom,
                 None, // TODO: timeout by Config struct, or default defined on helpers.rs?
             )?;
-            msgs.push(cosmos_msg);
+            delegate_submsgs.push(submsg);
+
+            // Decrease in memory balance for the current user inside the validators iteration
+            balance = balance
+                .checked_sub(supported_chain.autocompound_cost.into())
+                .unwrap(); // TODO_NICE: Better handle this unwrap
+            total_fees += supported_chain.autocompound_cost;
         }
+
+        // Save the new USER_BALANCES for the current user
+        USER_BALANCES.save(deps.storage, src_addr, &balance)?;
     }
 
     // Return a response only if there are any msgs to send, otherwise throw a ContractError.
-    // TODO: This should be adjusted as soon as we paginate the autocompound process
-    if !msgs.is_empty() {
+    if !delegate_submsgs.is_empty() {
+        // Bank message to send total_fees to info.sender keeper
+        let bank_msg = BankMsg::Send {
+            to_address: info.sender.to_string(),
+            amount: vec![coin(total_fees, "untrn")],
+        };
         Ok(Response::new()
             .add_attribute("action", "autocompound")
-            .add_messages(msgs))
+            .add_submessages(delegate_submsgs)
+            .add_message(bank_msg))
     } else {
         Err(ContractError::NoRewardsToAutocompound {})
     }
@@ -609,6 +637,85 @@ mod tests {
                 .load(deps.as_ref().storage, info.sender)
                 .unwrap();
             assert_eq!(balance, Uint128::new(1000000));
+        }
+    }
+
+    mod test_autocompound {
+        use cosmwasm_std::testing::{mock_env, mock_info};
+        use cosmwasm_std::{coins, Uint128};
+
+        use crate::execute::execute;
+        use crate::instantiate::instantiate;
+        use crate::msg::{ExecuteMsg, InstantiateMsg};
+        use crate::state::{Chain, SUPPORTED_CHAINS, USER_BALANCES};
+        use crate::testing::helpers::mock_neutron_dependencies;
+
+        #[test]
+        fn test_autocompound() {
+            let mut deps = mock_neutron_dependencies();
+            let creator_info = mock_info("creator", &coins(1000000, "untrn"));
+
+            instantiate(
+                deps.as_mut(),
+                mock_env(),
+                creator_info.clone(),
+                InstantiateMsg {
+                    admin: creator_info.sender.to_string(),
+                    neutron_register_ica_fee: 1000000,
+                    autocompound_threshold: 100,
+                },
+            )
+            .unwrap();
+
+            let add_supported_chain_msg = ExecuteMsg::AddSupportedChain {
+                chain_id: "chain_id".to_string(),
+                connection_id: "connection_id".to_string(),
+                denom: "denom".to_string(),
+                autocompound_cost: 100000,
+            };
+            execute(
+                deps.as_mut(),
+                mock_env(),
+                creator_info.clone(),
+                add_supported_chain_msg,
+            )
+            .unwrap();
+
+            let local_user_info = mock_info("local_user", &coins(1000000, "untrn"));
+            let remote_user_info = mock_info("remote_user", &coins(1000000, "untrn"));
+
+            let chain = Chain {
+                connection_id: "connection_id".to_string(),
+                ica_id: "ica_id".to_string(),
+                ica_port_id: "ica_port_id".to_string(),
+                autocompound_cost: 100000,
+                denom: "denom".to_string(),
+                ica_address: None,
+                ica_error: None,
+            };
+            SUPPORTED_CHAINS
+                .save(deps.as_mut().storage, "chain_id".to_string(), &chain)
+                .unwrap();
+
+            USER_BALANCES
+                .save(
+                    deps.as_mut().storage,
+                    local_user_info.sender,
+                    &Uint128::new(1000000),
+                )
+                .unwrap();
+
+            let keeper_info = mock_info("keeper", &vec![]);
+            let res = execute(
+                deps.as_mut(),
+                mock_env(),
+                keeper_info.clone(),
+                ExecuteMsg::Autocompound {
+                    delegators_amount: 1,
+                },
+            )
+            .unwrap();
+            assert_eq!(0, res.messages.len());
         }
     }
 }

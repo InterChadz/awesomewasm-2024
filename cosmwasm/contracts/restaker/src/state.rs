@@ -55,6 +55,7 @@ pub const USER_BALANCES: Map<Addr, Uint128> = Map::new("user_balances"); // Alwa
 #[index_list(UserChainRegistration)]
 pub struct UserChainRegistrationIndexes<'a> {
     pub local_address: MultiIndex<'a, Addr, UserChainRegistration, (Addr, String, String)>,
+    pub next_compound_height: MultiIndex<'a, u64, UserChainRegistration, (Addr, String, String)>,
 }
 
 pub fn user_chain_registrations<'a>(
@@ -65,6 +66,11 @@ pub fn user_chain_registrations<'a>(
             |_pk: &[u8], u: &UserChainRegistration| u.local_address.clone(),
             "user_chain_registrations",
             "user_chain_registrations__local_address",
+        ),
+        next_compound_height: MultiIndex::new(
+            |_pk: &[u8], u: &UserChainRegistration| u.next_compound_height.clone(),
+            "user_chain_registrations",
+            "user_chain_registrations__next_compound_height",
         ),
     };
 

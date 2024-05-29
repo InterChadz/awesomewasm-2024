@@ -32,7 +32,9 @@ pub enum ExecuteMsg {
     TopupUserBalance {
         // recipient: String, // TODO: nice to have thing
     },
-    Autocompound {},
+    Autocompound {
+        delegators_amount: u64,
+    },
 }
 
 #[cw_serde]

@@ -1,6 +1,6 @@
 use cosmos_sdk_proto::cosmos::{base::v1beta1::Coin, staking::v1beta1::MsgDelegate};
 use cosmos_sdk_proto::traits::Message;
-use cosmwasm_std::{Binary, StdError};
+use cosmwasm_std::{Binary, StdError, SubMsg};
 use neutron_sdk::bindings::{
     msg::{IbcFee, NeutronMsg},
     types::ProtobufAny,
@@ -18,7 +18,7 @@ pub fn get_delegate_submsg(
     amount: u128,
     denom: String,
     timeout: Option<u64>,
-) -> Result<NeutronMsg, ContractError> {
+) -> Result<SubMsg<NeutronMsg>, ContractError> {
     // Get the delegator address from the storage & form the Delegate message.
 
     let delegate_msg = MsgDelegate {
@@ -52,7 +52,7 @@ pub fn get_delegate_submsg(
     // The contract MUST HAVE recv_fee + ack_fee + timeout_fee coins on its balance!
     // See more info about fees here: https://docs.neutron.org/neutron/modules/interchain-txs/messages#msgsubmittx
     // and here: https://docs.neutron.org/neutron/modules/feerefunder/overview
-    // TODO_NICE: Relayers should be paid as the Keeper network peers!
+    // TODO_NICE: Relayers should be paid as the Keeper network addys!
     let fee = IbcFee {
         recv_fee: vec![],    // must be empty
         ack_fee: vec![],     // ack_fee: vec![CosmosCoin::new(100000u128, "untrn")],
@@ -69,5 +69,5 @@ pub fn get_delegate_submsg(
         fee,
     );
 
-    Ok(cosmos_msg)
+    Ok(SubMsg::new(cosmos_msg))
 }

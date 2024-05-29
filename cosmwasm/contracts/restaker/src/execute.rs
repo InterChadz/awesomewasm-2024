@@ -1,4 +1,4 @@
-use cosmwasm_std::{coins, entry_point, DepsMut, Env, MessageInfo, Response, SubMsg};
+use cosmwasm_std::{coins, entry_point, DepsMut, Env, MessageInfo, Response, StdError, SubMsg};
 use cw0::must_pay;
 use interchain_queries::v047::register_queries::new_register_delegator_delegations_query_msg;
 use neutron_sdk::bindings::msg::NeutronMsg;
@@ -50,7 +50,9 @@ pub fn update_config(
 
     CONFIG.save(deps.storage, &new_config)?;
 
-    Ok(Response::new())
+    Ok(Response::new()
+        .add_attribute("action", "update_config")
+        .add_attribute("config", format!("{:?}", config)))
 }
 
 pub fn add_supported_chain(
@@ -85,6 +87,7 @@ pub fn add_supported_chain(
         connection_id: connection_id.clone(),
         ica_id: ica_id.clone(),
         ica_port_id: ica_port_id.clone(),
+        autocompound_cost: 100000, // TODO: Make this configurable, now set as 0.1 $NTRN
         ica_address: None,
         ica_error: None,
     };
@@ -231,31 +234,60 @@ pub fn topup_user_balance(
         },
     )?;
 
-    Ok(Response::new())
+    Ok(Response::new().add_attribute("action", "topup_user_balance"))
 }
 
 pub fn autocompound(
     deps: DepsMut<NeutronQuery>,
-    _env: Env,
+    env: Env,
     _info: MessageInfo,
 ) -> Result<Response<NeutronMsg>, ContractError> {
-    todo!();
-
     // Iterate over all user_chain_registrations and autocompound
     let registrations = user_chain_registrations()
         .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
         .map(|item| item.unwrap())
         .collect::<Vec<_>>();
 
-    for ((src_addr, dst_chain_id, dst_addr), _) in registrations {
+    let mut submsgs: Vec<SubMsg<NeutronMsg>>;
+
+    for ((src_addr, dst_chain_id, dst_addr), registration) in registrations {
         // Autocompound for each registration
-        // only if the given user has enough topped up balance to cover protocol fees
         let balance = USER_BALANCES
             .load(deps.storage, src_addr)
             .unwrap_or_default();
+
+        // TODO: Should we error or continue here?
+        let supported_chain = SUPPORTED_CHAINS
+            .load(deps.storage, dst_chain_id)
+            .map_err(|_| StdError::not_found("Chain not found"))?;
+
+        // TODO: Is it time to autocompound for that user based on the latest height we did, and the threshold we want? Add this to Config struct
+
+        // TODO: Does this user has any rewards to compound? This should be at least > 0.1 (100000 udenom). Make this configurable.
+
+        // only if the given user has enough topped up balance to cover protocol fees
+        if balance.u128() < supported_chain.autocompound_cost {
+            continue;
+        }
+
+        let submsg = get_delegate_submsg(
+            deps,
+            env,
+            supported_chain.ica_id,
+            supported_chain.ica_port_id,
+            supported_chain.connection_id,
+            registration.remote_address,
+            registration.validators[0].clone(), // TODO: We should iter validators, querying the cumulated rewards foreach of them
+            amount,
+            denom,
+            None, // timeout,
+        )?;
+        submsgs.extend(submsg);
     }
 
-    Ok(Response::new()) // Return an empty response
+    Ok(Response::new()
+        .add_attribute("action", "autocompound")
+        .add_submessages(submsgs))
 }
 
 #[cfg(test)]

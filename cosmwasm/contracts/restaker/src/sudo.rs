@@ -5,6 +5,14 @@ use neutron_sdk::sudo::msg::{RequestPacket, SudoMsg};
 
 use crate::state::{ICA_PORT_ID_TO_CHAIN_ID, SUPPORTED_CHAINS};
 
+/// SudoPayload is a type that stores information about a transaction that we try to execute
+/// on the host chain. This is a type introduced for our convenience.
+#[cw_serde]
+pub struct SudoPayload {
+    pub message: String,
+    pub port_id: String,
+}
+
 #[cw_serde]
 struct OpenAckVersion {
     version: String,

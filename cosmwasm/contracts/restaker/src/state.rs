@@ -38,6 +38,7 @@ pub const NEXT_REPLY_ID: Item<u64> = Item::new("next_reply_id");
 pub const REPLY_ID_TO_USER_CHAIN_REGISTRATION: Map<u64, (Addr, String, String)> =
     Map::new("reply_id_to_user_chain_registration");
 
+// (Addr, String, String) is local_address, chain_id, remote_address 
 #[index_list(UserChainRegistration)]
 pub struct UserChainRegistrationIndexes<'a> {
     pub local_address: MultiIndex<'a, Addr, UserChainRegistration, (Addr, String, String)>,

@@ -1,15 +1,15 @@
-use cosmwasm_std::{coins, entry_point, DepsMut, Env, MessageInfo, Response, SubMsg};
-use interchain_queries::v047::register_queries::new_register_delegator_delegations_query_msg;
+use cosmwasm_std::{coins, DepsMut, entry_point, Env, MessageInfo, Response, SubMsg};
 use neutron_sdk::bindings::msg::NeutronMsg;
 use neutron_sdk::bindings::query::NeutronQuery;
-use neutron_sdk::interchain_queries;
+use neutron_sdk::interchain_queries::types::QueryPayload;
 use neutron_sdk::interchain_txs::helpers::get_port_id;
 
 use crate::error::ContractError;
+use crate::icq::keys::create_all_icq_keys_for_user;
 use crate::msg::{ExecuteMsg, UserChainRegistrationInput};
 use crate::state::{
-    user_chain_registrations, Chain, UserChainRegistration, CONFIG, ICA_PORT_ID_TO_CHAIN_ID,
-    NEXT_REPLY_ID, REPLY_ID_TO_USER_CHAIN_REGISTRATION, SUPPORTED_CHAINS,
+    Chain, CONFIG, ICA_PORT_ID_TO_CHAIN_ID, NEXT_REPLY_ID, REPLY_ID_TO_USER_CHAIN_REGISTRATION,
+    SUPPORTED_CHAINS, user_chain_registrations, UserChainRegistration,
 };
 
 //const STAKING_STORE_KEY: &str = "staking";
@@ -150,13 +150,16 @@ pub fn register_user(
             .unwrap();
 
         // ICQ stuff:
-        let icq_msg = new_register_delegator_delegations_query_msg(
+        let icq_keys = create_all_icq_keys_for_user(
+            remote_address.clone(),
+            registration.clone().validators,
+            None,
+        ).unwrap();
+        let icq_msg = NeutronMsg::register_interchain_query(
+            QueryPayload::KV(icq_keys),
             chain.connection_id,
-            remote_address,
-            registration.validators,
-            5,
-        )
-        .unwrap();
+            5)
+            .unwrap();
 
         let sub_msg = SubMsg::reply_on_success(icq_msg, next_reply_id);
         icq_msgs.push(sub_msg);
@@ -219,7 +222,7 @@ mod tests {
                     neutron_register_ica_fee: 1000000,
                 },
             )
-            .unwrap();
+                .unwrap();
 
             let msg = ExecuteMsg::AddSupportedChain {
                 chain_id: "chain_id".to_string(),
@@ -247,13 +250,13 @@ mod tests {
     }
 
     mod test_register_user {
-        use cosmwasm_std::testing::{mock_env, mock_info, MockApi};
         use cosmwasm_std::{coins, Order, StdResult};
+        use cosmwasm_std::testing::{mock_env, mock_info, MockApi};
 
         use crate::execute::execute;
         use crate::instantiate::instantiate;
         use crate::msg::{ExecuteMsg, InstantiateMsg};
-        use crate::state::{user_chain_registrations, NEXT_REPLY_ID};
+        use crate::state::{NEXT_REPLY_ID, user_chain_registrations};
         use crate::testing::helpers::mock_neutron_dependencies;
 
         #[test]
@@ -270,7 +273,7 @@ mod tests {
                     neutron_register_ica_fee: 1000000,
                 },
             )
-            .unwrap();
+                .unwrap();
 
             let add_supported_chain_msg = ExecuteMsg::AddSupportedChain {
                 chain_id: "chain_id".to_string(),
@@ -282,7 +285,7 @@ mod tests {
                 creator_info.clone(),
                 add_supported_chain_msg,
             )
-            .unwrap();
+                .unwrap();
 
             let mock_api = MockApi::default().with_prefix("cosmos");
             let remote_user_addr = mock_api.addr_make("remote_user");

@@ -1,4 +1,6 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
+use cosmwasm_std::Coin;
+use crate::icq::reconstruct::UserQueryData;
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -33,6 +35,12 @@ pub enum QueryMsg {
     },
     #[returns(GetCalculatedRewardResponse)]
     CalculateReward {
+        address: String,
+        chain_id: String,
+        remote_address: String,
+    },
+    #[returns(UserQueryData)]
+    UserQuery {
         address: String,
         chain_id: String,
         remote_address: String,
@@ -75,7 +83,12 @@ pub struct GetUserRegistrationsResponse {
 }
 
 #[cw_serde]
+pub struct RewardResponse {
+    pub validator: String,
+    pub reward: Vec<Coin>,
+}
+
+#[cw_serde]
 pub struct GetCalculatedRewardResponse {
-    pub total_delegation: u128,
-    pub reward: u128,
+    pub rewards: Vec<RewardResponse>,
 }

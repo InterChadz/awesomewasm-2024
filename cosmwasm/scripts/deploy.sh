@@ -19,6 +19,7 @@ COSMOS_HUB_USER_ADDRESS="cosmos10h9stc5v6ntgeygf5xf945njqq5h32r53uquvw"
 COSMOS_HUB_VAL="cosmosvaloper18hl5c9xn5dze2g50uaw0l2mr02ew57zk0auktn"
 COSMOS_HUB_CHAIN_ID="test-2"
 CONNECTION_ID="connection-0"
+AUTOCOMPOUND_COST=100000 # 0.1 $NTRN
 
 # Determine the architecture and set the appropriate file path
 if [ "$(uname -m)" = "arm64" ]; then
@@ -33,12 +34,12 @@ sleep 3
 CODE_ID=$(neutrond q tx "$STORE_HASH" --output json | jq -r '.events[] | select(.type=="store_code") | .attributes[] | select(.key=="code_id") | .value')
 echo "Uploaded contract with code id: $CODE_ID"
 
-INSTANTIATE_HASH=$(neutrond tx wasm instantiate "$CODE_ID" "{\"admin\": \"$NEUTRON_ADMIN_ADDRESS\", \"neutron_register_ica_fee\": \"1000000\"}" --label awesome_restaker --admin $NEUTRON_ADMIN_KEY --from $NEUTRON_ADMIN_KEY --gas-prices 0.025untrn --gas auto --gas-adjustment 1.75 --chain-id $NEUTRON_CHAIN_ID --yes --keyring-backend test --output json | jq -r ".txhash")
+INSTANTIATE_HASH=$(neutrond tx wasm instantiate "$CODE_ID" "{\"admin\": \"$NEUTRON_ADMIN_ADDRESS\", \"neutron_register_ica_fee\": \"1000000\", \"autocompound_threshold\": 100}" --label awesome_restaker --admin $NEUTRON_ADMIN_KEY --from $NEUTRON_ADMIN_KEY --gas-prices 0.025untrn --gas auto --gas-adjustment 1.75 --chain-id $NEUTRON_CHAIN_ID --yes --keyring-backend test --output json | jq -r ".txhash")
 sleep 3
 CONTRACT_ADDR=$(neutrond q tx "$INSTANTIATE_HASH" --output json | jq -r '.events[] | select(.type=="instantiate") | .attributes[] | select(.key=="_contract_address") | .value')
 echo "Instantiated contract with address: $CONTRACT_ADDR"
 
-ADD_CHAIN_HASH=$(neutrond tx wasm execute "$CONTRACT_ADDR" "{\"add_supported_chain\": {\"chain_id\": \"$COSMOS_HUB_CHAIN_ID\", \"connection_id\": \"$CONNECTION_ID\"}}" --amount 1000000untrn --from $NEUTRON_ADMIN_KEY --gas-prices 0.025untrn --gas auto --gas-adjustment 1.75 --chain-id $NEUTRON_CHAIN_ID --yes --keyring-backend test --output json  | jq -r ".txhash")
+ADD_CHAIN_HASH=$(neutrond tx wasm execute "$CONTRACT_ADDR" "{\"add_supported_chain\": {\"chain_id\": \"$COSMOS_HUB_CHAIN_ID\", \"connection_id\": \"$CONNECTION_ID\", \"denom\": \"uatom\", \"autocompound_cost\": \"$AUTOCOMPOUND_COST\"}}" --amount 1000000untrn --from $NEUTRON_ADMIN_KEY --gas-prices 0.025untrn --gas auto --gas-adjustment 1.75 --chain-id $NEUTRON_CHAIN_ID --yes --keyring-backend test --output json  | jq -r ".txhash")
 sleep 3
 ADD_CHAIN_RESULT=$(neutrond q tx "$ADD_CHAIN_HASH" --output json | jq -r ".code")
 if [ "$ADD_CHAIN_RESULT" != "0" ]; then

@@ -19,6 +19,7 @@ pub fn instantiate(
             &Config {
                 admin,
                 neutron_register_ica_fee: msg.neutron_register_ica_fee,
+                autocompound_threshold: msg.autocompound_threshold,
             },
         )
         .unwrap();
@@ -47,6 +48,7 @@ mod tests {
         let msg = InstantiateMsg {
             admin: "admin".to_string(),
             neutron_register_ica_fee: 1000000,
+            autocompound_threshold: 100,
         };
 
         let res = instantiate(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();

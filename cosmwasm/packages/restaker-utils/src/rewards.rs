@@ -1,8 +1,5 @@
 use std::{collections::HashMap, str::FromStr};
-use std::fmt::format;
-
 use cosmwasm_std::{Coin, Decimal256, Deps, Env, StdError, StdResult, Uint128, Uint256};
-
 use crate::types::{DelegatorStartingInfo, ValidatorHistoricalRewards};
 
 pub fn calculate_delegation_rewards(
@@ -245,7 +242,7 @@ fn tokens_from_shares(
 
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::testing::mock_env;
+    use cosmwasm_std::testing::{mock_dependencies, mock_env};
 
     use crate::types::ValidatorHistoricalRewards;
 
@@ -291,9 +288,11 @@ mod tests {
         //     (150, Decimal256::percent(10)), // Example slash event at height 150 with a 10% slash
         //     (180, Decimal256::percent(5)),  // Another example at height 180 with a 5% slash
         // ];
+        let deps = mock_dependencies();
 
         let result = calculate_delegation_rewards(
             env,
+            deps.as_ref(),
             starting_info,
             // slash_events,
             current_shares,

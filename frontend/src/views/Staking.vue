@@ -5,7 +5,7 @@
         <div class="col-md-4 d-flex">
           <ToppedUpBalanceComponent :balance="toppedUpBalance" />
         </div>
-        <div class="col-md-4 d-flex"> </div>
+        <div class="col-md-4 d-flex"></div>
         <div class="col-md-4 d-flex">
           <WalletBalanceComponent :balance="walletBalance" />
         </div>
@@ -14,7 +14,7 @@
       <div class="chain-components">
         <ChainComponent
           v-for="chain in filteredChains"
-          :key="chain.name"
+          :key="chain.chainId"
           :chainName="chain.name"
           :chainImage="chain.image"
           :costToAutocompound="chain.costToAutocompound"
@@ -54,31 +54,38 @@ export default {
       const supportedChainIds = this.appSupportedChains.map(chain => chain.chain_id);
       console.log("Supported Chain IDs:", supportedChainIds);
       console.log("User Registrations:", this.userRegistrations);
-      
-      return this.chains.map(chain => {
-        const isSupported = supportedChainIds.includes(chain.chainId);
-        console.log(`Chain ${chain.chainId} is supported: ${isSupported}`);
+
+      const hardcodedChains = this.chains.reduce((acc, chain) => {
+        acc[chain.chainId] = chain;
+        return acc;
+      }, {});
+
+      return this.appSupportedChains.map(supportedChain => {
+        const chain = hardcodedChains[supportedChain.chain_id] || {
+          name: supportedChain.chain_id,
+          chainId: supportedChain.chain_id,
+          image: require('@/assets/chains/placeholder.svg'),
+          costToAutocompound: '',
+          lastAutocompound: ''
+        };
         
-        if (isSupported) {
-          const registration = this.userRegistrations.find(reg => reg.chain_id === chain.chainId);
-          console.log(`Chain ${chain.chainId} registration:`, registration);
-          
-          const reward = this.userRewards.find(reward => reward.chain_id === chain.chainId);
-          console.log(`Chain ${chain.chainId} reward:`, reward);
-          
-          return {
-            ...chain,
-            stakedValidators: registration ? registration.validators.map(validator => ({
-              address: validator,
-              amount: 0
-            })) : [],
-            totalStaked: reward ? reward.calculated_reward.total_delegation : 0,
-            pendingRewards: reward ? reward.calculated_reward.reward : 0,
-            isActive: !!registration
-          };
-        }
-        return null;
-      }).filter(chain => chain !== null);
+        const registration = this.userRegistrations.find(reg => reg.chain_id === chain.chainId);
+        console.log(`Chain ${chain.chainId} registration:`, registration);
+
+        const reward = this.userRewards.find(reward => reward.chain_id === chain.chainId);
+        console.log(`Chain ${chain.chainId} reward:`, reward);
+
+        return {
+          ...chain,
+          stakedValidators: registration ? registration.validators.map(validator => ({
+            address: validator,
+            amount: 0
+          })) : [],
+          totalStaked: reward ? reward.calculated_reward.total_delegation : 0,
+          pendingRewards: reward ? reward.calculated_reward.reward : 0,
+          isActive: !!registration
+        };
+      });
     }
   },
   data() {
@@ -131,5 +138,4 @@ export default {
 
 <style lang="scss" scoped>
 @import "@/assets/style.scss";
-
 </style>

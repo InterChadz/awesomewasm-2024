@@ -45,7 +45,7 @@ pub fn query(deps: Deps<NeutronQuery>, env: Env, msg: QueryMsg) -> StdResult<Bin
         )?),
         QueryMsg::UserQuery { address, chain_id, remote_address } => to_json_binary(&query_user_query(deps, address, chain_id, remote_address)?),
         QueryMsg::UserBalance { address } => to_json_binary(&query_user_balance(deps, address)?),
-        QueryMsg::DueUserChainRegistrationsResponse { delegators_amount } => to_json_binary(
+        QueryMsg::DueUserChainRegistrations { delegators_amount } => to_json_binary(
             &query_due_user_chain_registrations(deps, env, delegators_amount)?,
         ),
     }
@@ -547,7 +547,7 @@ mod tests {
 
             // Increase 99 blocks, we still should not be able to compound
             mock_env.block.height = 1099;
-            let query_msg = QueryMsg::DueUserChainRegistrationsResponse {
+            let query_msg = QueryMsg::DueUserChainRegistrations {
                 delegators_amount: 1,
             };
             let response = query(deps.as_ref(), mock_env.clone(), query_msg).unwrap();
@@ -556,7 +556,7 @@ mod tests {
 
             // Compound time!
             mock_env.block.height = 1100; // init + autocompound_threshold set as 100
-            let query_msg = QueryMsg::DueUserChainRegistrationsResponse {
+            let query_msg = QueryMsg::DueUserChainRegistrations {
                 delegators_amount: 1,
             };
             let response = query(deps.as_ref(), mock_env, query_msg).unwrap();

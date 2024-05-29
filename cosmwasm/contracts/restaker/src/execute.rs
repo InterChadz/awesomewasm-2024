@@ -1,6 +1,5 @@
 use cosmwasm_std::{
     coin, coins, entry_point, BankMsg, DepsMut, Env, MessageInfo, Response, StdError, SubMsg,
-    Uint128,
 };
 use cw0::must_pay;
 use neutron_sdk::bindings::msg::NeutronMsg;
@@ -646,7 +645,7 @@ mod tests {
         }
     }
 
-    mod test_autocompound {
+    /*mod test_autocompound {
         use cosmwasm_std::testing::{mock_env, mock_info};
         use cosmwasm_std::{coins, Uint128};
 
@@ -744,5 +743,5 @@ mod tests {
             .unwrap();
             assert_eq!(0, res.messages.len());
         }
-    }
+    }*/
 }

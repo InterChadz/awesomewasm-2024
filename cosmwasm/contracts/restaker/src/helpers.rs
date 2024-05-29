@@ -2,8 +2,7 @@ use cosmos_sdk_proto::Any;
 use cosmos_sdk_proto::cosmos::{base::v1beta1::Coin, staking::v1beta1::MsgDelegate};
 use cosmos_sdk_proto::cosmos::authz::v1beta1::MsgExec;
 use cosmos_sdk_proto::traits::Message;
-use cosmwasm_std::{coins, Addr, Binary, Deps, Env, StdError, SubMsg, Order, StdResult};
-use cw_storage_plus::PrefixBound;
+use cosmwasm_std::{coins, Binary, Deps, Env, StdError, SubMsg, Order};
 use neutron_sdk::bindings::query::NeutronQuery;
 use neutron_sdk::bindings::{
     msg::{IbcFee, NeutronMsg},
@@ -11,7 +10,6 @@ use neutron_sdk::bindings::{
 };
 
 use crate::error::ContractError;
-use crate::msg::UserChainResponse;
 use crate::state::{user_chain_registrations, UserChainRegistration};
 
 const DEFAULT_TIMEOUT_SECONDS: u64 = 60 * 60 * 24 * 7 * 2; // 2 weeks TODO: this is a lot, how much? Or we just deprecate this and we always pass it from above.
@@ -24,10 +22,6 @@ pub fn get_due_user_chain_registrations(
     let current_height = env.block.height;
     //let end_bound = Some(PrefixBound::inclusive(current_height));
     
-    let all_of_them = user_chain_registrations()
-        .range(deps.storage, None, None, Order::Ascending)
-        .collect::<StdResult<Vec<((Addr, String, String), UserChainRegistration)>>>()?;
-
     let reggies = user_chain_registrations()
         .range(deps.storage, None, None, Order::Ascending)
         .filter_map(|item| {

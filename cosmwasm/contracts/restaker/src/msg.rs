@@ -1,6 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Coin;
-use cosmwasm_std::Addr;
 use crate::icq::reconstruct::UserQueryData;
 
 use crate::state::{Config, UserChainRegistration};
@@ -78,7 +77,7 @@ pub enum QueryMsg {
     #[returns(UserBalanceResponse)]
     UserBalance { address: String },
     #[returns(DueUserChainRegistrationsResponse)]
-    DueUserChainRegistrationsResponse { delegators_amount: u64 },
+    DueUserChainRegistrations { delegators_amount: u64 },
 }
 
 #[cw_serde]

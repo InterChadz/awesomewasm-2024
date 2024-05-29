@@ -23,6 +23,7 @@ pub enum ExecuteMsg {
     TopupUserBalance {
         // recipient: String, // TODO: nice to have thing
     },
+    Autocompound {},
 }
 
 #[cw_serde]

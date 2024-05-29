@@ -30,6 +30,7 @@ pub fn execute(
         } => add_supported_chain(deps, env, info, chain_id, connection_id),
         ExecuteMsg::RegisterUser { registrations } => register_user(deps, info, registrations),
         ExecuteMsg::TopupUserBalance {} => topup_user_balance(deps, env, info),
+        ExecuteMsg::Autocompound {} => autocompound(deps, env, info),
     }
 }
 
@@ -205,6 +206,30 @@ pub fn topup_user_balance(
     )?;
 
     Ok(Response::new())
+}
+
+pub fn autocompound(
+    deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+) -> Result<Response<NeutronMsg>, ContractError> {
+    todo!();
+
+    // Iterate over all user_chain_registrations and autocompound
+    let registrations = user_chain_registrations()
+        .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
+        .map(|item| item.unwrap())
+        .collect::<Vec<_>>();
+
+    for ((src_addr, dst_chain_id, dst_addr), _) in registrations {
+        // Autocompound for each registration
+        // only if the given user has enough topped up balance to cover protocol fees
+        let balance = USER_BALANCES
+            .load(deps.storage, src_addr)
+            .unwrap_or_default();
+    }
+
+    Ok(Response::new()) // Return an empty response
 }
 
 #[cfg(test)]

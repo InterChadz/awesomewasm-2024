@@ -16,7 +16,14 @@ pub enum ExecuteMsg {
     AddSupportedChain {
         chain_id: String,
         connection_id: String,
-        denom: String,
+        denom: String,           // The native staking token of a dst chain
+        autocompound_cost: u128, // Always in untrn, this is the fee paid to the keepers for autocompounding
+    },
+    UpdateSupportedChain {
+        chain_id: String,
+        connection_id: String,
+        denom: String,           // The native staking token of a dst chain
+        autocompound_cost: u128, // Always in untrn, this is the fee paid to the keepers for autocompounding
     },
     RegisterUser {
         registrations: Vec<UserChainRegistrationInput>,

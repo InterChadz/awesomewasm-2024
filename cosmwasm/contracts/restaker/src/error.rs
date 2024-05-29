@@ -16,6 +16,9 @@ pub enum ContractError {
     #[error("chain already exists")]
     ChainAlreadyExists {},
 
+    #[error("chain not found")]
+    ChainNotFound {},
+
     #[error("not enough funds, required amount is {required_amount}untrn, actual amount is {actual_amount}untrn")]
     NotEnoughFunds {
         required_amount: u128,

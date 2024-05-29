@@ -32,7 +32,30 @@ pub fn execute(
             chain_id,
             connection_id,
             denom,
-        } => add_supported_chain(deps, env, info, chain_id, connection_id, denom),
+            autocompound_cost,
+        } => add_supported_chain(
+            deps,
+            env,
+            info,
+            chain_id,
+            connection_id,
+            denom,
+            autocompound_cost,
+        ),
+        ExecuteMsg::UpdateSupportedChain {
+            chain_id,
+            connection_id,
+            denom,
+            autocompound_cost,
+        } => update_supported_chain(
+            deps,
+            env,
+            info,
+            chain_id,
+            connection_id,
+            denom,
+            autocompound_cost,
+        ),
         ExecuteMsg::RegisterUser { registrations } => register_user(deps, info, registrations),
         ExecuteMsg::TopupUserBalance {} => topup_user_balance(deps, env, info),
         ExecuteMsg::Autocompound {} => autocompound(deps, env, info),
@@ -65,6 +88,7 @@ pub fn add_supported_chain(
     chain_id: String,
     connection_id: String,
     denom: String,
+    autocompound_cost: u128,
 ) -> Result<Response<NeutronMsg>, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     if info.sender != config.admin {
@@ -91,8 +115,8 @@ pub fn add_supported_chain(
         connection_id: connection_id.clone(),
         ica_id: ica_id.clone(),
         ica_port_id: ica_port_id.clone(),
-        autocompound_cost: 100000, // TODO: Make this configurable, now set as 0.1 $NTRN
-        denom,                     // the staking denom on the dst chain we autocompound for
+        autocompound_cost,
+        denom,
         ica_address: None,
         ica_error: None,
     };
@@ -115,7 +139,38 @@ pub fn add_supported_chain(
         .add_message(register))
 }
 
-// TODO: update_supported_chain (priority)
+fn update_supported_chain(
+    deps: DepsMut<NeutronQuery>,
+    env: Env,
+    info: MessageInfo,
+    chain_id: String,
+    connection_id: String,
+    denom: String,
+    autocompound_cost: u128,
+) -> Result<Response<NeutronMsg>, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+    if info.sender != config.admin {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    let chain = SUPPORTED_CHAINS.load(deps.storage, chain_id.clone())?;
+
+    let ica_id = format!("restake-{}", chain_id);
+    let ica_port_id = get_port_id(env.contract.address.as_str(), &ica_id);
+    let chain = Chain {
+        connection_id,
+        ica_id,
+        ica_port_id,
+        autocompound_cost,
+        denom,
+        ica_address: chain.ica_address,
+        ica_error: chain.ica_error,
+    };
+
+    SUPPORTED_CHAINS.save(deps.storage, chain_id, &chain)?;
+
+    Ok(Response::new())
+}
 
 // TODO remove_supported_chain
 
@@ -130,6 +185,7 @@ pub fn register_user(
     deps.api
         .debug(format!("WASMDEBUG: next_reply_id: {}", next_reply_id).as_str());
     for registration in registrations {
+        // TODO_NICE: handle this .load with a may_load
         let chain = SUPPORTED_CHAINS.load(deps.storage, registration.clone().chain_id)?;
 
         let chain_id = registration.clone().chain_id;
@@ -396,6 +452,7 @@ mod tests {
                 chain_id: "chain_id".to_string(),
                 connection_id: "connection_id".to_string(),
                 denom: "denom".to_string(),
+                autocompound_cost: 100000,
             };
 
             let res = execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
@@ -448,6 +505,7 @@ mod tests {
                 chain_id: "chain_id".to_string(),
                 connection_id: "connection_id".to_string(),
                 denom: "denom".to_string(),
+                autocompound_cost: 100000,
             };
             execute(
                 deps.as_mut(),

@@ -144,6 +144,7 @@ mod tests {
                 chain_id: "chain_id".to_string(),
                 connection_id: "connection_id".to_string(),
                 denom: "denom".to_string(),
+                autocompound_cost: 100000,
             };
             execute(deps.as_mut(), mock_env(), info.clone(), add_chain_msg).unwrap();
             let chain = SUPPORTED_CHAINS

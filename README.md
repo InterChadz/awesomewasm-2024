@@ -40,6 +40,20 @@ For detailed instructions to start the dApp, see the respective readme files:
   - The frontend can also be accessed [here](https://interchadz.vercel.app/) without installation.
 - [Contracts installation instructions](https://github.com/InterChadz/awesomewasm-2024/blob/main/cosmwasm/README.md)
 
+## Functions
+
+### RegisterUser
+
+This function is available on the staking dashboard as a toggle. When restaking is not enabled, users can activate it by clicking the toggle. A transaction is initiated, with `chainId`, `address` and validators as parameters. The chainid and address are available in the state, and the validators are queried from the chain.
+
+### Autocompound
+
+This function triggers the autocompound feature, compounding all pending rewards to the staked balance.
+
+### TopupUserBalance
+
+TODO
+
 ## Hackathon tracks
 
 ### Neutron Track - Free-form project track

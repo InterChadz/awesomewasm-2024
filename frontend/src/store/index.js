@@ -19,6 +19,7 @@ export default createStore({
   state: {
     user: {
       signer: null,
+      signers: [],
       querier: null,
       stockQuerier: null,
       address: null,
@@ -41,6 +42,11 @@ export default createStore({
     // main origin chain signer
     userSigner(state) {
       return state.user.signer;
+    },
+
+    // all external signers
+    userSigners(state) {
+      return state.user.signers;
     },
 
     userQuerier(state) {
@@ -95,6 +101,10 @@ export default createStore({
   mutations: {
     setUserSigner(state, signer) {
       state.user.signer = signer;
+    },
+
+    setUserSigners(state, signer) {
+      state.user.signers.push(signer);
     },
 
     setUserQuerier(state, querier) {
@@ -210,6 +220,54 @@ export default createStore({
         console.log("signer", signingClient)
         commit("setUserSigner", signingClient);
         console.log("User initialized succesfully")
+
+        // for any supported chain
+        for (const chain of data.chains) {
+          console.log("destination chain", chain)
+
+          const externalChainInfo = JSON.parse(process.env.VUE_APP_CHAINS_APIS).find(c => c.chainId === chain.chain_id)
+          console.log("externalChainInfo", JSON.parse(process.env.VUE_APP_CHAINS_APIS).find(c => c.chainId === chain.chain_id))
+
+          const suggestChainInfo = mxChainUtils.methods.getSuggestChainInfo(chain.chain_id, externalChainInfo.prefix, externalChainInfo.rpc, externalChainInfo.rest, externalChainInfo.symbol)
+          console.log("suggestChainInfo", suggestChainInfo)
+
+          await mxChainUtils.methods.suggestChain(suggestChainInfo)
+
+          const protoRegistry = [
+            ...cosmosProtoRegistry,
+            ...cosmwasmProtoRegistry,
+          ];
+          const aminoConverters = {
+            ...cosmosAminoConverters,
+            ...cosmwasmAminoConverters,
+          };
+          const registry = new Registry(protoRegistry);
+          const aminoTypes = new AminoTypes(aminoConverters);
+
+          const offlineSigner = await window.keplr.getOfflineSigner(chain.chain_id);
+          console.log("offlineSigner", offlineSigner)
+
+          //const key = await window.keplr.getKey(chain.chain_id);
+          //console.log("key", key)
+
+          const accounts = await offlineSigner.getAccounts();
+          //console.log(accounts)
+
+          const signingClient = await SigningStargateClient.connectWithSigner(
+            externalChainInfo.rpc,
+            offlineSigner,
+            // other options
+            {
+              registry,
+              aminoTypes
+            }
+          );
+          commit("setUserSigners", {
+            chainId: chain.chain_id,
+            address: mxChainUtils.methods.deriveAddress2(chain.chain_id, accounts[0].address),
+            signer: signingClient
+          });
+        }
       }
     },
 

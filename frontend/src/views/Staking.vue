@@ -3,27 +3,21 @@
     <div>
       <div class="balances d-flex">
         <div class="col-md-4 d-flex">
-          <ToppedUpBalanceComponent :balance="toppedUpBalance" />
+          <ToppedUpBalanceComponent/>
         </div>
         <div class="col-md-4 d-flex"></div>
         <div class="col-md-4 d-flex">
-          <WalletBalanceComponent :balance="walletBalance" />
+          <WalletBalanceComponent/>
         </div>
       </div>
 
       <div class="chain-components">
-        <ChainComponent
-          v-for="chain in filteredChains"
-          :key="chain.chainId"
-          :chainName="chain.name"
-          :chainId="chain.chainId"
-          :chainImage="chain.image"
-          :costToAutocompound="chain.costToAutocompound"
-          :lastAutocompound="chain.lastAutocompound"
-          :stakedValidators="chain.stakedValidators"
-          :totalStaked="chain.totalStaked"
-          :pendingRewards="chain.pendingRewards"
-          :isActive="chain.isActive"
+        <div class="action-buttons p-3">
+          <button @click="compound">Compound</button> {{dueDelegationsAmount}}
+        </div>
+
+        <ChainComponent v-for="(chain, index) in appSupportedChains" :key="index"
+                        :chain="chain"
         />
       </div>
     </div>
@@ -31,108 +25,65 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
+import {mapGetters} from 'vuex';
 import ToppedUpBalanceComponent from '@/components/ToppedUpBalanceComponent.vue';
 import WalletBalanceComponent from '@/components/WalletBalanceComponent.vue';
 import ChainComponent from '@/components/ChainComponent.vue';
+import mxToast from "@/mixin/toast";
+import mxChain from "@/mixin/chain";
 
 export default {
-  name: 'StakingPage',
+  name: 'StakingView',
+
+  mixins: [mxToast, mxChain],
+
   components: {
     ToppedUpBalanceComponent,
     WalletBalanceComponent,
     ChainComponent
   },
+
   computed: {
-    ...mapGetters(['userBalance', 'userContractBalance', 'userRegistrations', 'userRewards', 'appSupportedChains']),
-    walletBalance() {
-      return this.userBalance;
+    ...mapGetters(['appSupportedChains', "appDueUserRegistrations", 'appConfig']),
+
+    // The amount is the sum of all delegations from all the users registered among all the supported chains
+    // If a user has more than one delegation in the same chain, the amount will be the sum of all the delegations, but not amount, just number of delegations.
+    dueDelegationsAmount() {
+      // [
+      //   {
+      //     "local_address":"neutron10h9stc5v6ntgeygf5xf945njqq5h32r54rf7kf",
+      //     "chain_id":"testy-2",
+      //     "remote_address":"cosmos10h9stc5v6ntgeygf5xf945njqq5h32r53uquvw",
+      //     "validators":[
+      //       "cosmosvaloper18hl5c9xn5dze2g50uaw0l2mr02ew57zk0auktn"
+      //     ],
+      //     "delegator_delegations_reply_id":1,
+      //     "delegator_delegations_icq_id":1,
+      //     "next_compound_height":126
+      //   }
+      // ]
+      return this.appDueUserRegistrations.reduce((acc, item) => {
+        return acc + item.validators.length;
+      }, 0);
     },
-    toppedUpBalance() {
-      return this.userContractBalance;
-    },
-    filteredChains() {
-      const supportedChainIds = this.appSupportedChains.map(chain => chain.chain_id);
-      console.log("Supported Chain IDs:", supportedChainIds);
-      console.log("User Registrations:", this.userRegistrations);
 
-      const hardcodedChains = this.chains.reduce((acc, chain) => {
-        acc[chain.chainId] = chain;
-        return acc;
-      }, {});
+    keeperReward() {
+      if (!this.dueDelegationsAmount) return 0
 
-      return this.appSupportedChains.map(supportedChain => {
-        const chain = hardcodedChains[supportedChain.chain_id] || {
-          name: supportedChain.chain_id,
-          chainId: supportedChain.chain_id,
-          image: require('@/assets/chains/placeholder.svg'),
-          costToAutocompound: '',
-          lastAutocompound: ''
-        };
-        
-        const registration = this.userRegistrations.find(reg => reg.chain_id === chain.chainId);
-        console.log(`Chain ${chain.chainId} registration:`, registration);
-
-        const reward = this.userRewards.find(reward => reward.chain_id === chain.chainId);
-        console.log(`Chain ${chain.chainId} reward:`, reward);
-
-        return {
-          ...chain,
-          stakedValidators: registration ? registration.validators.map(validator => ({
-            address: validator,
-            amount: 0
-          })) : [],
-          totalStaked: reward ? reward.calculated_reward.total_delegation : 0,
-          pendingRewards: reward ? reward.calculated_reward.reward : 0,
-          isActive: !!registration
-        };
-      });
+      return this.dueDelegationsAmount
     }
   },
-  data() {
-    return {
-      chains: [
-        {
-          name: 'Osmosis',
-          chainId: 'test-0',
-          image: require('@/assets/chains/osmosis.svg'),
-          costToAutocompound: '0.05 OSMO',
-          lastAutocompound: '2 hours ago'
-        },
-        {
-          name: 'Neutron',
-          chainId: 'test-1',
-          image: require('@/assets/chains/neutron.png'),
-          costToAutocompound: '0.01 NTRN',
-          lastAutocompound: '3 hours ago'
-        },
-        {
-          name: 'Cosmos Hub',
-          chainId: 'test-2',
-          image: require('@/assets/chains/cosmos.svg'),
-          costToAutocompound: '0.1 ATOM',
-          lastAutocompound: '1 hour ago'
-        }
-      ]
-    };
-  },
+
   methods: {
-    async fetchData() {
-      this.error = false;
+    async compound() {
       try {
-        await this.$store.dispatch('fetchAppSupportedChains');
-        await this.$store.dispatch('fetchUserData');
+        await this.autocompound();
+        this.toast.success("Rewards compounded successfully.");
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("failed to compound", error)
+        this.toast.error("Failed to compound rewards.");
       }
-    },
-    retryFetchData() {
-      this.retryCount = 0;
-      this.fetchData();
     }
-  },
-  created() {
-    this.fetchData();
   }
 };
 </script>

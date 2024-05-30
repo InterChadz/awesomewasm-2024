@@ -73,6 +73,7 @@ pub fn query_supported_chains(
             chain_id: id,
             connection_id: chain.connection_id,
             ica_address: chain.ica_address.map(|addr| addr.to_string()),
+            autocompound_cost: chain.autocompound_cost,
         })
         .collect();
 

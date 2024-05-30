@@ -5,7 +5,7 @@
         "url": "https://lcd.osmosis.zone/cosmos/staking/v1beta1/delegations"
       },
       {
-        "chainId": "test-2",
+        "chainId": "testy-2",
         "url": "https://cosmos-api.polkachu.com/cosmos/staking/v1beta1/delegations"
       },
       {

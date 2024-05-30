@@ -1,37 +1,135 @@
 <template>
   <div class="balance-table-component">
-    <div class="total-staked">
-      <span>Total Staked:</span>
-      <span>{{ displayAmount(totalStaked) }}</span>
-    </div>
-    <div class="staked-table">
-      <div class="staked-row" v-for="(validator, index) in stakedValidators.slice(0, 3)" :key="index">
-        <span>{{ shortenAddress(validator.address) }}:</span>
-        <span>{{ displayAmount(validator.amount) }}</span>
+    <div class="card" v-for="(item, index) in userFilteredDelegations" :key="index">
+      <div class="card-body">
+        <h5>Your delegations</h5>
+
+        <div v-for="(delegation, index) in item.delegations" :key="index">
+          <ul class="list-unstyled">
+            <li>Validator: {{ delegation.delegation.validator_address.substring(0, 20) }}...</li>
+            <li>Delegated: {{ displayAmount(delegation.balance.amount, 2) }}
+              {{ delegation.balance.denom.substring(1).toUpperCase() }}
+            </li>
+          </ul>
+
+          <div v-if="userFilteredRewards.length">
+            <h5>Pending Rewards</h5>
+            <div v-for="(rewards, rindex) in userFilteredRewards" :key="rindex">
+              <ul class="list-unstyled">
+                <li
+                  v-for="(reward, zindex) in rewards.calculated_reward.rewards.find(i => i.validator === delegation.delegation.validator_address).reward"
+                  :key="zindex">
+                  {{ displayAmount(reward.amount, 2) }} {{ reward.denom.substring(1).toUpperCase() }}
+                </li>
+              </ul>
+            </div>
+          </div>
+          <p v-else>To start autocompounding, you have register the user on this chain first.</p>
+
+          <hr/>
+
+          <ButtonComponent v-if="!grants.length" text="Grant" class="btn btn-primary" :is-small="true"
+                           @click.prevent="grantAuthZ(userSigners.find(s => s.chainId === chain.chain_id).address, chain.ica_address, [delegation.delegation.validator_address])"/>
+          <ButtonComponent v-else text="Revoke" class="btn btn-primary" :is-small="true"
+                           @click.prevent="revokeAuthZ(userSigners.find(s => s.chainId === chain.chain_id).address, chain.ica_address, [delegation.delegation.validator_address])"/>
+        </div>
+        <p v-if="!item.delegations.length">You have no delegations!</p>
       </div>
     </div>
-    <div class="pending-rewards">
-      <span>Pending Rewards:</span>
-      <span>{{ displayAmount(pendingRewards) }}</span>
-    </div>
+
+    <p class="text-end mt-3">Total staked: {{ displayAmount(totalStaked, 2) }}
+      <CoinComponent/>
+    </p>
   </div>
 </template>
 
 <script>
 import mxChain from '@/mixin/chain';
+import {mapGetters} from "vuex";
+import CoinComponent from "@/components/Common/CoinComponent.vue";
+import ButtonComponent from "@/components/Common/ButtonComponent.vue";
+import {QueryClient, setupAuthzExtension} from "@cosmjs/stargate";
+import {Tendermint34Client} from "@cosmjs/tendermint-rpc";
 
 export default {
   name: 'BalanceTableComponent',
-  mixins:[mxChain],
+  components: {ButtonComponent, CoinComponent},
+
+  mixins: [mxChain],
+
   props: {
-    stakedValidators: Array,
-    totalStaked: Number,
-    pendingRewards: Number
-  },
-  methods: {
-    shortenAddress(address) {
-      return address.slice(0, 6) + '...' + address.slice(-4);
+    chain: {
+      type: Object,
+      required: true
     }
-  }
+  },
+
+  data() {
+    return {
+      grants: []
+    }
+  },
+
+  async created() {
+    // grant permission is always the ICA address, but for a different validator addy foreach staking position
+    const apis = JSON.parse(process.env.VUE_APP_CHAINS_APIS);
+    const api = apis.find(api => api.chainId === this.chain.chain_id);
+    console.log("found authz RPC for client to external chains", api.rpc);
+
+    const tmClient = await Tendermint34Client.connect(api.rpc)
+
+    const queryClient = QueryClient.withExtensions(tmClient, setupAuthzExtension);
+    console.log("QUERY CLIENT WITH EXTENSIONS", queryClient)
+
+    // TODO: Do the query to AuthZç
+    // TODO: gaiad q authz grants-by-granter cosmos10h9stc5v6ntgeygf5xf945njqq5h32r53uquvw --node tcp://:16657
+    const response = await queryClient.authz.granterGrants(this.userSigners.find(s => s.chainId === this.chain.chain_id).address);
+    console.log("response.grants", response.grants)
+    this.grants = response.grants
+  },
+
+  computed: {
+    ...mapGetters(['userDelegations', 'userRewards', 'userSigners']),
+
+    userFilteredDelegations() {
+      return this.userDelegations.filter(delegation => delegation.chain_id === this.chain.chain_id);
+    },
+
+    userFilteredRewards() {
+      return this.userRewards.filter(reward => reward.chain_id === this.chain.chain_id);
+    },
+
+    totalStaked() {
+      return this.userFilteredDelegations.reduce((acc, item) => {
+        return acc + item.delegations.reduce((acc, delegation) => {
+          return acc + parseInt(delegation.balance.amount);
+        }, 0);
+      }, 0);
+    },
+  },
+
+  //thods: {
+  //async isValidatorGranted(valAddress) {
+  //  console.log("valAddress", valAddress)
+  //  // grant permission is always the ICA address, but for a different validator addy foreach staking position
+  //  const apis = JSON.parse(process.env.VUE_APP_CHAINS_APIS);
+  //  const api = apis.find(api => api.chainId === this.chain.chain_id);
+  //  console.log("found authz RPC for client to external chains", api.rpc);
+
+
+  //  const tmClient = await Tendermint34Client.connect(api.rpc)
+
+
+  //  const queryClient = QueryClient.withExtensions(tmClient, setupAuthzExtension);
+  //  console.log("QUERY CLIENT WITH EXTENSIONS", queryClient)
+
+  //  // TODO: Do the query to AuthZç
+  //  // TODO: gaiad q authz grants-by-granter cosmos10h9stc5v6ntgeygf5xf945njqq5h32r53uquvw --node tcp://:16657
+  //  const response = await queryClient.authz.granterGrants(this.userSigners.find(s => s.chainId === this.chain.chain_id).address);
+  //  console.log("response.grants", response.grants)
+
+  //  return response.grants.length > 0
+  //}
+  //}
 };
 </script>

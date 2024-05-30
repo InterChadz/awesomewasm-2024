@@ -10,14 +10,6 @@ const routes = [
     component: () => import("@/views/Home"),
   },
   {
-    path: "/team",
-    name: "Team",
-    meta: {
-      title: "Our Team",
-    },
-    component: () => import("@/views/Team"),
-  },
-  {
     path: "/staking",
     name: "Staking",
     meta: {

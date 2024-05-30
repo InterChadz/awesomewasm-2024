@@ -40,12 +40,12 @@ export default {
   vertical-align: middle;
   font-weight: 600;
   text-transform: uppercase;
-  padding: .5em 1.5em;
+  padding: .5em 1em;
   border: 0;
-  font-size: 2em;
+  font-size: 1.5em;
 
   &.small {
-    font-size: 1.25em;
+    font-size: 1em;
   }
 
   &:disabled {

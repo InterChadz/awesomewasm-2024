@@ -8,27 +8,45 @@ const mxApp = {
   },
 
   computed: {
-    ...mapGetters(['userAddress', 'appState']),
+    ...mapGetters(['userAddress']),
   },
 
   methods: {
     ...mapActions([
+      // User
       'initUser',
-      'fetchAppConfig',
       'fetchUserData',
-      'fetchAppSupportedChains'
+      'fetchUserDelegations',
+      // App
+      'fetchAppConfig',
+      //'fetchAppSupportedChains',
+      'fetchDueUserChainRegistrations'
     ]),
 
     async fetchOnce() {
-      await this.initUser();
+      try {
+        // Important as first
+        await this.initUser();
 
-      await this.fetchAppConfig();
+        // App-wise things
+        await this.fetchAppConfig();
+      } catch (e) {
+        // nothing
+        console.error(e)
+      }
+    },
 
-      await this.fetchAppSupportedChains();
+    async fetchInterval() {
+      try {
+        await this.fetchDueUserChainRegistrations()
 
-      // Init signer and querier for the connected user, if any
-      if (this.userAddress) {
-        await this.fetchUserData();
+        if (this.userAddress) {
+          await this.fetchUserData();
+          await this.fetchUserDelegations()
+        }
+      } catch (e) {
+        // nothing
+        console.error(e)
       }
     },
 

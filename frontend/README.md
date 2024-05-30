@@ -12,6 +12,8 @@ $ npm start
 
 You need a .env file like this:
 
+This is set up for the forked Cosmopark set detailed in the cosmwasm README.md.
+
 ```
 # Frontend
 BASE_URL=http://localhost:8080

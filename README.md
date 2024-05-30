@@ -13,6 +13,8 @@
 
 Currently we are using a forked version of Cosmopark to run this locally. The forks will be available under the InterChadz organization on GitHub.
 
+You can find details on how to run all the prerequisites and the code itself locally in the README files of the respective folders: `cosmwasm` and `frontend`.
+
 ## Flow
 
 ![flow](flow.png)

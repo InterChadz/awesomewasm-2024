@@ -44,8 +44,36 @@ export default {
     try {
       await this.suggestChain(JSON.parse(process.env.VUE_APP_CHAIN_INFO));
     } catch (e) {
-      //console.error(e)
+      console.error(e)
     }
+
+    console.log("suggesting cosmos hub")
+    await window.keplr.experimentalSuggestChain({
+      "chainId": "testy-2",
+      "chainName": "Cosmos Testy Hub",
+      "rpc": "http://localhost:16657",
+      "rest": "http://localhost:1316",
+      "bip44": {"coinType": 118},
+      "bech32Config": {
+        "bech32PrefixAccAddr": "cosmos",
+        "bech32PrefixAccPub": "cosmospub",
+        "bech32PrefixValAddr": "cosmosvaloper",
+        "bech32PrefixValPub": "cosmosvaloperpub",
+        "bech32PrefixConsAddr": "cosmosvalcons",
+        "bech32PrefixConsPub": "cosmosvalconspub"
+      },
+      "currencies": [{"coinDenom": "ATOM", "coinMinimalDenom": "uatom", "coinDecimals": 6, "coinGeckoId": "cosmos"}],
+      "feeCurrencies": [{
+        "coinDenom": "ATOM",
+        "coinMinimalDenom": "uatom",
+        "coinDecimals": 6,
+        "coinGeckoId": "cosmos",
+        "gasPriceStep": {"low": 0.0025, "average": 0.025, "high": 0.04}
+      }],
+      "stakeCurrency": {"coinDenom": "ATOM", "coinMinimalDenom": "uatom", "coinDecimals": 6, "coinGeckoId": "cosmos"}
+    });
+    await window.keplr.enable("test-2");
+
     await this.fetchOnce();
     await this.fetchInterval()
     // we ensure that till this moment rest of UI is kept idle

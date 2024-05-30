@@ -52,7 +52,7 @@ export default {
       // [
       //   {
       //     "local_address":"neutron10h9stc5v6ntgeygf5xf945njqq5h32r54rf7kf",
-      //     "chain_id":"test-2",
+      //     "chain_id":"testy-2",
       //     "remote_address":"cosmos10h9stc5v6ntgeygf5xf945njqq5h32r53uquvw",
       //     "validators":[
       //       "cosmosvaloper18hl5c9xn5dze2g50uaw0l2mr02ew57zk0auktn"

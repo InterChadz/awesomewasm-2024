@@ -1,1 +1,1 @@
-{"rest":[{"chainId":"test-1","url":"http://localhost:1317/cosmos/staking/v1beta1/delegations"},{"chainId":"test-2","url":"http://localhost:1316/cosmos/staking/v1beta1/delegations"}]}
+{"rest":[{"chainId":"test-1","url":"http://localhost:1317/cosmos/staking/v1beta1/delegations"},{"chainId":"testy-2","url":"http://localhost:1316/cosmos/staking/v1beta1/delegations"}]}

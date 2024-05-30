@@ -1,5 +1,5 @@
 use cosmwasm_std::{
-    coin, coins, entry_point, BankMsg, DepsMut, Env, MessageInfo, Response, StdError, SubMsg,
+    coin, coins, entry_point, BankMsg, DepsMut, Env, MessageInfo, Response, StdError, SubMsg, Uint128,
 };
 use cw0::must_pay;
 use neutron_sdk::bindings::msg::NeutronMsg;
@@ -345,8 +345,6 @@ pub fn autocompound(
             /*if balance.u128() < supported_chain.autocompound_cost {
                 continue;
             }*/
-
-            // TODO: Is it time to autocompound for that user based on the latest height we did, and the threshold we want? Add this to Config struct
 
             // Does this user has any rewards to compound?
             let calculate_rewards = query_calculate_reward(

@@ -1,5 +1,5 @@
 import {mapGetters} from "vuex";
-import {toBech32, toUtf8} from "@cosmjs/encoding";
+import {fromBech32, toBech32, toUtf8} from "@cosmjs/encoding";
 import {ripemd160, sha256} from "@cosmjs/crypto";
 
 const mxChain = {
@@ -9,7 +9,8 @@ const mxChain = {
 
   methods: {
     async registerUser(chainId, userAddress, validators) {
-      console.log(chainId, this.deriveAddress(chainId, this.userPubKey), validators)
+      const derived = this.deriveAddress2(chainId, this.userAddress)
+      console.log("derived on register user: ", derived)
       /** @type {import("@cosmjs/proto-signing").EncodeObject} */
       const msg = {
         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -20,7 +21,7 @@ const mxChain = {
             register_user: {
               registrations: [{
                 chain_id: chainId,
-                address: this.deriveAddress(chainId, this.userPubKey), // remote chain
+                address: derived, // remote chain
                 validators: validators,
               }]
             }
@@ -88,6 +89,7 @@ const mxChain = {
       //    }
       // }
       // Construct the message payload
+      console.log("grantee", grantee)
       const msg = {
         typeUrl: "/cosmos.authz.v1beta1.MsgGrant",
         value: {
@@ -107,6 +109,7 @@ const mxChain = {
           }
         }
       };
+      console.log("authz grant msg", msg)
 
       // Submit the transaction
       return this._submitTx(msg);
@@ -137,7 +140,18 @@ const mxChain = {
       // Hash the public key to create the address
       const sha256Hash = sha256(pubkey);
       const ripemd160Hash = ripemd160(sha256Hash);
+      console.log("derived addy", toBech32(chainInfo.prefix, ripemd160Hash))
       return toBech32(chainInfo.prefix, ripemd160Hash)
+    },
+
+    deriveAddress2(chainId, address) {
+      console.log("in address", address)
+      const chainInfo = JSON.parse(process.env.VUE_APP_CHAINS_APIS).find(c => c.chainId === chainId)
+      const { data } = fromBech32(address);
+      console.log("chainInfo.prefix", chainInfo.prefix)
+      const addy = toBech32(chainInfo.prefix, data)
+      console.log("out addy", addy)
+      return addy
     },
 
     displayAmount(amount, decimals = 6) {
@@ -198,6 +212,7 @@ const mxChain = {
     // PRIVATE
 
     async _submitTx(message) {
+      console.log("SUBMIT TX MSG", message)
       const gasWanted = await this.userSigner.simulate(this.userAddress, [message])
       const fee = this._calculateFee(gasWanted);
       return await this.userSigner.signAndBroadcast(this.userAddress, [message], fee); // Return successful response

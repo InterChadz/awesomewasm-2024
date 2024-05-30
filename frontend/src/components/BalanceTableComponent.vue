@@ -12,7 +12,7 @@
             </li>
           </ul>
 
-          <div v-if="userFilteredRewards.lenght">
+          <div v-if="userFilteredRewards.length">
             <h5>Pending Rewards</h5>
             <div v-for="(rewards, rindex) in userFilteredRewards" :key="rindex">
               <ul class="list-unstyled">

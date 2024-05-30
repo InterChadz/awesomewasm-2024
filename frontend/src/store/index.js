@@ -1,6 +1,6 @@
 import {createStore} from "vuex";
-import {AminoTypes} from "@cosmjs/stargate";
-import {CosmWasmClient, SigningCosmWasmClient} from "@cosmjs/cosmwasm-stargate";
+import {AminoTypes, SigningStargateClient, StargateClient} from "@cosmjs/stargate";
+import {CosmWasmClient} from "@cosmjs/cosmwasm-stargate";
 import {Registry} from "@cosmjs/proto-signing";
 import {cosmosAminoConverters, cosmosProtoRegistry, cosmwasmAminoConverters, cosmwasmProtoRegistry} from "osmojs";
 import mxChain from "../mixin/chain";
@@ -20,6 +20,7 @@ export default createStore({
     user: {
       signer: null,
       querier: null,
+      stockQuerier: null,
       address: null,
       pubkey: null,
       balance: null,
@@ -44,6 +45,10 @@ export default createStore({
 
     userQuerier(state) {
       return state.user.querier;
+    },
+
+    stockQuerier(state) {
+      return state.user.stockQuerier;
     },
 
     userAddress(state) {
@@ -96,6 +101,10 @@ export default createStore({
       state.user.querier = querier;
     },
 
+    setStockQuerier(state, querier) {
+      state.user.stockQuerier = querier;
+    },
+
     setUserAddress(state, address) {
       state.user.address = address;
     },
@@ -145,6 +154,9 @@ export default createStore({
       const queryClient = await CosmWasmClient.connect(process.env.VUE_APP_RPC);
       commit("setUserQuerier", queryClient);
 
+      const stockClient = await StargateClient.connect(process.env.VUE_APP_RPC);
+      commit("setStockQuerier", stockClient);
+
       // fetch app supported chains
       const data = await queryClient.queryContractSmart(
         process.env.VUE_APP_CONTRACT,
@@ -184,7 +196,7 @@ export default createStore({
         commit("setUserAddress", accounts[0].address);
         commit("setUserPubKey", accounts[0].pubkey);
 
-        const signingClient = await SigningCosmWasmClient.connectWithSigner(
+        const signingClient = await SigningStargateClient.connectWithSigner(
           process.env.VUE_APP_RPC,
           offlineSigner,
           // other options
@@ -275,7 +287,7 @@ export default createStore({
         // take or derive the user remote address for that chain-id
         const remoteAddress = userRegistration
           ? userRegistration.remote_address // if user is registered
-          : mxChainUtils.methods.deriveAddress(chain.chain_id, state.user.pubkey); // if not registered
+          : mxChainUtils.methods.deriveAddress2(chain.chain_id, state.user.address); // if not registered
         console.log(`remoteAddress for ${chain.chain_id}: ${remoteAddress}`)
 
         const chainApi = chainsApis.find(c => c.chainId === chain.chain_id);

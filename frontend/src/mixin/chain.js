@@ -1,6 +1,7 @@
 import {mapGetters} from "vuex";
 import {fromBech32, toBech32, toUtf8} from "@cosmjs/encoding";
 import {ripemd160, sha256} from "@cosmjs/crypto";
+import {StakeAuthorization}  from "osmojs/cosmos/staking/v1beta1/authz";
 
 const mxChain = {
   computed: {
@@ -89,7 +90,7 @@ const mxChain = {
                 allowList: {
                   address // this should be an array of validator addresses
                 },
-                authorizationType: "AUTHORIZATION_TYPE_DELEGATE"
+                authorizationType: 1
               }
             },
             expiration: null
@@ -225,6 +226,7 @@ const mxChain = {
       let address;
       if (chainId != null) {
         console.log("chain != null")
+        console.log(this.userSigners)
         let foundSigner = this.userSigners.find(s => s.chainId === chainId);
         console.log("signer", foundSigner)
         console.log("userSigners", this.userSigners);

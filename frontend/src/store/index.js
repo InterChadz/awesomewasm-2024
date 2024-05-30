@@ -254,7 +254,7 @@ export default createStore({
           //console.log(accounts)
 
           let signingClient;
-          if (chain.chain_id === "test-2") {
+          if (chain.chain_id === "testy-2") {
             signingClient = await SigningStargateClient.connectWithSigner(
                 externalChainInfo.rpc,
                 offlineSigner,

@@ -72,7 +72,7 @@ export default {
       }],
       "stakeCurrency": {"coinDenom": "ATOM", "coinMinimalDenom": "uatom", "coinDecimals": 6, "coinGeckoId": "cosmos"}
     });
-    await window.keplr.enable("test-2");
+    await window.keplr.enable("testy-2");
 
     await this.fetchOnce();
     await this.fetchInterval()

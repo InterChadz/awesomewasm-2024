@@ -1,9 +1,13 @@
 <div align="center">
   <h1 align="center">InterChadz</h1>
-  <h3>ICA restaker on Neutron</h3>
+  <h3>ICA Stake Auto Compounder on Neutron</h3>
   
 ![logo](logo.png)
 </div>
+
+💡 This project is a decentralized staking auto-compounder that leverages ICA, authz and Neutron to
+let the user set-and-forget their staking positions. The user can register on multiple networks
+and auto compound their staking rewards.
 
 💸 Given the recent news about Yieldmos being taken down, there is a need for a new restaking solution. InterChadz uses a restaking contract deployed on Neutron where users pay a fee to set up automated compounding of staking rewards.
 
@@ -11,7 +15,7 @@
 
 ## Running locally
 
-Currently we are using a forked version of Cosmopark to run this locally. The forks will be available under the InterChadz organization on GitHub.
+Currently, we are using a forked version of Cosmopark to run this locally. The forks will be available under the InterChadz organization on GitHub.
 
 You can find details on how to run all the prerequisites and the code itself locally in the README files of the respective folders: `cosmwasm` and `frontend`.
 
@@ -72,6 +76,8 @@ For detailed instructions to start the dApp, see the respective readme files:
 - [Contracts installation instructions](https://github.com/InterChadz/awesomewasm-2024/blob/main/cosmwasm/README.md)
 
 ## Functions
+
+For more information, look at the `cosmwasm/README.md` and the msg.rs file in the contract.
 
 ### RegisterUser
 

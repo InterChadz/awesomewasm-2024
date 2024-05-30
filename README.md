@@ -17,8 +17,6 @@ Currently we are using a forked version of Cosmopark to run this locally. The fo
 
 ![flow](flow.png)
 
-<<<<<<< Updated upstream
-=======
 The contract has a single ICA account on every supported chain that the user will give MsgDelegate Authz permissions to.
 
 The contract leverages the Neutron ICQ module to get all the information it needs to calculate the users pending rewards (it's quite a bit, because the rewards are not actually stored in the state machine (and therefor is currently unavailable for ICQ) and is always calculated on the fly).
@@ -41,7 +39,6 @@ Development cost and maintenance is not covered in the economics right now,
 as it would be better to be short-term covered by a grant or similar.
 Long-term the project could grow to either have a small increase in fee where scale makes it possible.
 
->>>>>>> Stashed changes
 ### Initial registration flow
 
 The contract as a msg to add supported chains. When a new chain is added it creates a new single ICA account on that chain.

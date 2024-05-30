@@ -9,16 +9,50 @@
 
 ⚙️ Built with interchain accounts + authz + Neutron Cron.
 
+## Running locally
+
+Currently we are using a forked version of Cosmopark to run this locally. The forks will be available under the InterChadz organization on GitHub.
+
 ## Flow
 
 ![flow](flow.png)
 
+<<<<<<< Updated upstream
+=======
+The contract has a single ICA account on every supported chain that the user will give MsgDelegate Authz permissions to.
+
+The contract leverages the Neutron ICQ module to get all the information it needs to calculate the users pending rewards (it's quite a bit, because the rewards are not actually stored in the state machine (and therefor is currently unavailable for ICQ) and is always calculated on the fly).
+
+There is a single permissionless endpoint that triggers auto-compounding for all the users on all the networks.
+It simply checks which users are due for an auto-compounding and sends out Authz Exec with MsgDelegate to the ICA account.
+
+Automated triggering of the endpoint can be done by anyone (it is incentivized),
+but the plan is to use either Neutron Cron or an automation network like Warp.
+Since the user is paying for the service, paying for this is built into the economics.
+
+### Economics
+We want this project to be sustainable, so the user is expected to cover fees for the following:
+- Relaying (including the ICQ deposits)
+- Triggering the automated endpoint
+
+The fees are not going to be quite low, so the user should not be turned off by this.
+
+Development cost and maintenance is not covered in the economics right now,
+as it would be better to be short-term covered by a grant or similar.
+Long-term the project could grow to either have a small increase in fee where scale makes it possible.
+
+>>>>>>> Stashed changes
 ### Initial registration flow
 
+The contract as a msg to add supported chains. When a new chain is added it creates a new single ICA account on that chain.
+
+When the user wants to register the following happens
 1. User sends registration tx to the contract with the network(s) they want to autocompound on and their address
-2. The contract creates one ICA on each network for the user
-3. Register periodic ICQ for the ICA balance (done in the callback, since we don't know the address beforehand)
-4. User send authz tx (for the delegate message) for each ICA, one transaction for each network they want to autocompound on.
+2. The contract register periodic ICQ for the user info needed to calculate pending rewards (https://github.com/InterChadz/awesomewasm-2024/blob/a0c58c2b5a5f4e72bc48fd011532fbf64e79a289/cosmwasm/contracts/restaker/src/icq/keys.rs#L21)
+    - All the ICQ information is automatically updated here: https://github.com/InterChadz/awesomewasm-2024/blob/main/cosmwasm/contracts/restaker/src/icq/reconstruct.rs
+3. The user needs to send a Authz Grant tx to the ICA account on the network(s) they want to autocompound on
+
+The rest is automated.
 
 ## Screenshots
 
@@ -56,7 +90,6 @@ TODO
 
 - [Vercel deployment](https://interchadz.vercel.app/)
 - [Presentation slides](https://docs.google.com/presentation/d/1IYWVWDWnHKXnIZhBLLIKgeaYTuGvEGsnP0QN7qjfSZY/edit?usp=sharing)
-- [Demo video]()
 - [Github repo](https://github.com/InterChadz/awesomewasm-2024)
 - [Dorahacks Buidl](https://dorahacks.io/buidl/12895)
 - [Twitter/X profile](https://x.com/TheInterChadz)

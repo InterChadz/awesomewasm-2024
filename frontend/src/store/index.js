@@ -172,6 +172,8 @@ export default createStore({
         // populating chainIds with the origin chain plus the destination chains supported by the contract
         let chainIds = [chainId];
         for (const chain of data.chains) {
+          const apiInfo = chainsApis.find(c => c.chainId === chain.chain_id);
+          await mxChainUtils.methods.suggestChain(mxChainUtils.methods.getSuggestChainInfo(chain.chain_id, apiInfo.prefix, apiInfo.rpc, apiInfo.rest, apiInfo.symbol));
           chainIds.push(chain.chain_id)
         }
 

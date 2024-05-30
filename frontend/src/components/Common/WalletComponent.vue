@@ -1,8 +1,8 @@
 <template>
-  <button class="btn btn-link p-0" @click.prevent="onClickConnect" v-if="!userSigner">
+  <button class="btn btn-link p-3" @click.prevent="onClickConnect" v-if="!userSigner">
     <span>Connect Wallet</span>
   </button>
-  <button class="btn btn-link p-0" v-else>
+  <button class="btn btn-link p-3" v-else>
     <span>{{ userAddress ? userAddress.substring(0, 10) : 'Error' }}...</span>
   </button>
 </template>

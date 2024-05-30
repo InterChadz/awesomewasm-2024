@@ -7,7 +7,7 @@
             <img :src="`/chains/${chain.chain_id}.png`" :alt="Icon" class="chain-image">{{ chain.chain_id }}
           </span>
 
-          <div class="restaking-toggle" v-if="!isUserRegistered">
+          <div class="restaking-toggle" v-if="!isUserRegistered && userDelegations.find(d => d.chain_id === chain.chain_id).delegations.length">
             <span class="toggle-label">User registered: </span>
             <label class="switch">
               <input type="checkbox" :checked="isUserRegistered" :disabled="isUserRegistered"
@@ -15,7 +15,8 @@
               <span class="slider round"></span>
             </label>
           </div>
-          <p v-else>YOU ARE REGISTERED</p>
+          <p v-else-if="!userDelegations.find(d => d.chain_id === chain.chain_id).delegations.length">You have no delegations, so you cant register your account.</p>
+          <p v-else>You have registered successfully. You can grant the permission now via AuthZ module to the ICA account.</p>
         </div>
 
         <div class="chain-info">

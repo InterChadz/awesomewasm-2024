@@ -31,6 +31,7 @@
           <ButtonComponent text="Grant / Revoke" class="btn btn-primary" :is-small="true"
                            @click.prevent="grantAuthZ(userAddress, chain.ica_address, [delegation.delegation.validator_address])"/>
         </div>
+        <p v-if="!item.delegations.length">You have no delegations!</p>
       </div>
     </div>
 

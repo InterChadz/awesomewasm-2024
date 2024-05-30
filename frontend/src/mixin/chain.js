@@ -26,7 +26,12 @@ const mxChain = {
               }]
             }
           })),
-          funds: [],
+          funds: [
+            {
+              denom: process.env.VUE_APP_FEE_DENOM,
+              amount: "100000"
+            }
+          ],
         }
       }
       return this._submitTx(msg)

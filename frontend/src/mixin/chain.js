@@ -1,7 +1,7 @@
 import {mapGetters} from "vuex";
 import {fromBech32, toBech32, toUtf8} from "@cosmjs/encoding";
 import {ripemd160, sha256} from "@cosmjs/crypto";
-import {StakeAuthorization}  from "osmojs/cosmos/staking/v1beta1/authz";
+//import {StakeAuthorization}  from "osmojs/cosmos/staking/v1beta1/authz";
 
 const mxChain = {
   computed: {

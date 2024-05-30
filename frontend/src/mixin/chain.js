@@ -1,7 +1,9 @@
 import {mapGetters} from "vuex";
 import {fromBech32, toBech32, toUtf8} from "@cosmjs/encoding";
 import {ripemd160, sha256} from "@cosmjs/crypto";
-//import {StakeAuthorization}  from "osmojs/cosmos/staking/v1beta1/authz";
+// import {StakeAuthorization}  from "osmojs/cosmos/staking/v1beta1/authz";
+// import {MsgRevoke, MsgGrant} from "osmojs/cosmos/authz/v1beta1/tx";
+import {StakeAuthorization} from "osmojs/cosmos/staking/v1beta1/authz";
 
 const mxChain = {
   computed: {
@@ -86,14 +88,15 @@ const mxChain = {
           grant: {
             authorization: {
               typeUrl: "/cosmos.staking.v1beta1.StakeAuthorization",
-              value: {
-                allowList: {
-                  address // this should be an array of validator addresses
-                },
-                authorizationType: 1
-              }
-            },
-            expiration: null
+              value: StakeAuthorization.encode(StakeAuthorization.fromPartial({
+                  allowList: {
+                    address: address // this should be an array of validator addresses
+                  },
+                  authorizationType: 1
+                }
+              )).finish(),
+              expiration: null
+            }
           }
         }
       };
@@ -157,7 +160,7 @@ const mxChain = {
     deriveAddress2(chainId, address) {
       console.log("in address", address)
       const chainInfo = JSON.parse(process.env.VUE_APP_CHAINS_APIS).find(c => c.chainId === chainId)
-      const { data } = fromBech32(address);
+      const {data} = fromBech32(address);
       console.log("chainInfo.prefix", chainInfo.prefix)
       const addy = toBech32(chainInfo.prefix, data)
       console.log("out addy", addy)
@@ -247,7 +250,7 @@ const mxChain = {
 
     // This has implemented as: https://hackmd.io/@3DOBr1TJQ3mQAFDEO0BXgg/S1N09wpQp
     _calculateFee(gasWanted) {
-      const gas = Math.ceil(gasWanted * 1.3);
+      const gas = Math.ceil(gasWanted * 2.5);
       const baseFee = Number(process.env.VUE_APP_BASE_FEE)
 
       // baseFee * 3 doesn't seem to be necessary after v23 upgrade, but leaving that here for the moment

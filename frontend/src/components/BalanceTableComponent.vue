@@ -29,9 +29,9 @@
           <hr/>
 
           <ButtonComponent v-if="!grants.length" text="Grant" class="btn btn-primary" :is-small="true"
-                           @click.prevent="grantAuthZ(userSigners.find(s => s.chainId === chain.chain_id).address, chain.ica_address, [delegation.delegation.validator_address])"/>
+                           @click.prevent="wrapperGrant(delegation.delegation.validator_address)"/>
           <ButtonComponent v-else text="Revoke" class="btn btn-primary" :is-small="true"
-                           @click.prevent="revokeAuthZ(userSigners.find(s => s.chainId === chain.chain_id).address, chain.ica_address, [delegation.delegation.validator_address])"/>
+                           @click.prevent="wrapperRevoke(delegation.delegation.validator_address)"/>
         </div>
         <p v-if="!item.delegations.length">You have no delegations!</p>
       </div>
@@ -50,12 +50,13 @@ import CoinComponent from "@/components/Common/CoinComponent.vue";
 import ButtonComponent from "@/components/Common/ButtonComponent.vue";
 import {QueryClient, setupAuthzExtension} from "@cosmjs/stargate";
 import {Tendermint34Client} from "@cosmjs/tendermint-rpc";
+import mxToast from "@/mixin/toast";
 
 export default {
   name: 'BalanceTableComponent',
   components: {ButtonComponent, CoinComponent},
 
-  mixins: [mxChain],
+  mixins: [mxChain, mxToast],
 
   props: {
     chain: {
@@ -68,24 +69,6 @@ export default {
     return {
       grants: []
     }
-  },
-
-  async created() {
-    // grant permission is always the ICA address, but for a different validator addy foreach staking position
-    const apis = JSON.parse(process.env.VUE_APP_CHAINS_APIS);
-    const api = apis.find(api => api.chainId === this.chain.chain_id);
-    console.log("found authz RPC for client to external chains", api.rpc);
-
-    const tmClient = await Tendermint34Client.connect(api.rpc)
-
-    const queryClient = QueryClient.withExtensions(tmClient, setupAuthzExtension);
-    console.log("QUERY CLIENT WITH EXTENSIONS", queryClient)
-
-    // TODO: Do the query to AuthZç
-    // TODO: gaiad q authz grants-by-granter cosmos10h9stc5v6ntgeygf5xf945njqq5h32r53uquvw --node tcp://:16657
-    const response = await queryClient.authz.granterGrants(this.userSigners.find(s => s.chainId === this.chain.chain_id).address);
-    console.log("response.grants", response.grants)
-    this.grants = response.grants
   },
 
   computed: {
@@ -108,28 +91,48 @@ export default {
     },
   },
 
-  //thods: {
-  //async isValidatorGranted(valAddress) {
-  //  console.log("valAddress", valAddress)
-  //  // grant permission is always the ICA address, but for a different validator addy foreach staking position
-  //  const apis = JSON.parse(process.env.VUE_APP_CHAINS_APIS);
-  //  const api = apis.find(api => api.chainId === this.chain.chain_id);
-  //  console.log("found authz RPC for client to external chains", api.rpc);
+  methods: {
+    async wrapperGrant(valAddress) {
+      try {
+        const response = await this.grantAuthZ(this.userSigners.find(s => s.chainId === this.chain.chain_id).address, this.chain.ica_address, [valAddress])
+        console.log(response)
+        await this.fetchGrants()
+        this.toast.success("Permission successfully granted.")
+      } catch (e) {
+        this.toast.error("Failed granting permission.")
+        console.error(e)
+      }
+    },
 
+    async wrapperRevoke(valAddress) {
+      try {
+        const response = await this.revokeAuthZ(this.userSigners.find(s => s.chainId === this.chain.chain_id).address, this.chain.ica_address, [valAddress])
+        console.log(response)
+        await this.fetchGrants()
+        this.toast.success("Permission successfully revoked.")
+      } catch (e) {
+        this.toast.error("Failer revoking permission.")
+        console.error(e)
+      }
+    },
 
-  //  const tmClient = await Tendermint34Client.connect(api.rpc)
+    async fetchGrants() {
+      // grant permission is always the ICA address, but for a different validator addy foreach staking position
+      const apis = JSON.parse(process.env.VUE_APP_CHAINS_APIS);
+      const api = apis.find(api => api.chainId === this.chain.chain_id);
+      console.log("found authz RPC for client to external chains", api.rpc);
 
+      const tmClient = await Tendermint34Client.connect(api.rpc)
 
-  //  const queryClient = QueryClient.withExtensions(tmClient, setupAuthzExtension);
-  //  console.log("QUERY CLIENT WITH EXTENSIONS", queryClient)
+      const queryClient = QueryClient.withExtensions(tmClient, setupAuthzExtension);
+      console.log("QUERY CLIENT WITH EXTENSIONS", queryClient)
 
-  //  // TODO: Do the query to AuthZç
-  //  // TODO: gaiad q authz grants-by-granter cosmos10h9stc5v6ntgeygf5xf945njqq5h32r53uquvw --node tcp://:16657
-  //  const response = await queryClient.authz.granterGrants(this.userSigners.find(s => s.chainId === this.chain.chain_id).address);
-  //  console.log("response.grants", response.grants)
-
-  //  return response.grants.length > 0
-  //}
-  //}
+      // TODO: Do the query to AuthZç
+      // TODO: gaiad q authz grants-by-granter cosmos10h9stc5v6ntgeygf5xf945njqq5h32r53uquvw --node tcp://:16657
+      const response = await queryClient.authz.granterGrants(this.userSigners.find(s => s.chainId === this.chain.chain_id).address);
+      console.log("response.grants", response.grants)
+      this.grants = response.grants
+    }
+  }
 };
 </script>

@@ -13,7 +13,7 @@
 
       <div class="chain-components">
         <div class="action-buttons p-3">
-          <button @click="compound">Compound</button> {{dueDelegationsAmount}}
+          <button @click="compound">Compound</button> <span class="badge bg-primary">{{dueDelegationsAmount}} users ready to be compounded</span>
         </div>
 
         <ChainComponent v-for="(chain, index) in appSupportedChains" :key="index"

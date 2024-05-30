@@ -71,6 +71,10 @@ export default {
     }
   },
 
+  created() {
+    this.fetchGrants()
+  },
+
   computed: {
     ...mapGetters(['userDelegations', 'userRewards', 'userSigners']),
 

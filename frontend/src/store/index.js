@@ -253,15 +253,24 @@ export default createStore({
           const accounts = await offlineSigner.getAccounts();
           //console.log(accounts)
 
-          const signingClient = await SigningStargateClient.connectWithSigner(
-            externalChainInfo.rpc,
-            offlineSigner,
-            // other options
-            {
-              registry,
-              aminoTypes
-            }
-          );
+          let signingClient;
+          if (chain.chain_id === "test-2") {
+            signingClient = await SigningStargateClient.connectWithSigner(
+                externalChainInfo.rpc,
+                offlineSigner,
+            );
+          } else {
+            signingClient = await SigningStargateClient.connectWithSigner(
+                externalChainInfo.rpc,
+                offlineSigner,
+                // other options
+                {
+                  registry,
+                  aminoTypes
+                }
+            );
+          }
+
           commit("setUserSigners", {
             chainId: chain.chain_id,
             address: mxChainUtils.methods.deriveAddress2(chain.chain_id, accounts[0].address),

@@ -5,13 +5,32 @@
 ![logo](logo.png)
 </div>
 
+## Summary
+
+This project is a decentralized staking auto-compounder that leverages ICA, authz and Neutron to 
+let the user set-and-forget their staking positions. The user can register on multiple networks
+and autocompound their staking rewards.
+
 💸 Given the recent news about Yieldmos being taken down, there is a need for a new restaking solution. InterChadz uses a restaking contract deployed on Neutron where users pay a fee to set up automated compounding of staking rewards.
 
-⚙️ Built with interchain accounts + authz + Neutron Cron.
+⚙️ Built with interchain accounts + authz + Neutron ICX and ICQ.
 
 ## Flow
 
 ![flow](flow.png)
+
+The contract has a single ICA account on every supported chain that the user will give MsgDelegate Authz permissions to.
+
+The contract leverages the Neutron ICQ module to get all the information it needs to calculate the users pending rewards (it's quite a bit, because the rewards are not actually stored in the state machine (and therefor is currently unavailable for ICQ) and is always calculated on the fly).
+
+There is a single permissionless endpoint that triggers auto-compounding for all the users on all the networks.
+It simply checks which users are due for an auto-compounding and sends out Authz Exec with MsgDelegate to the ICA account.
+
+Automated triggering of the endpoint can be done by anyone (it is incentivized)
+
+### Economics
+
+To cover cost of 
 
 ### Initial registration flow
 

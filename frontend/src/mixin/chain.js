@@ -4,7 +4,7 @@ import {ripemd160, sha256} from "@cosmjs/crypto";
 
 const mxChain = {
   computed: {
-    ...mapGetters(['userSigner', 'userAddress', 'appConfig', 'userPubKey']),
+    ...mapGetters(['userSigner', 'userSigners', 'userAddress', 'appConfig', 'userPubKey']),
   },
 
   methods: {
@@ -117,7 +117,7 @@ const mxChain = {
       console.log("authz grant msg", msg)
 
       // Submit the transaction
-      return this._submitTx(msg);
+      return this._submitTx(msg, "testy-2");
     },
 
     // Utils
@@ -164,6 +164,7 @@ const mxChain = {
     },
 
     async suggestChain(chainInfo) {
+      console.log("suggesting chain rtttt", chainInfo)
       await window.keplr?.experimentalSuggestChain(chainInfo);
     },
 
@@ -171,8 +172,8 @@ const mxChain = {
       return {
         "chainId": chainId,
         "chainName": chainId,
-        "rpc": "http://localhost:26657",
-        "rest": "http://localhost:1317",
+        "rpc": rpc,
+        "rest": rest,
         "bip44": {
           "coinType": 118
         },
@@ -189,7 +190,7 @@ const mxChain = {
             "coinDenom": symbol.toUpperCase(),
             "coinMinimalDenom": "u" + symbol.toLowerCase(),
             "coinDecimals": 6,
-            "coinGeckoId": "neutron"
+            "coinGeckoId": "cosmos"
           }
         ],
         "feeCurrencies": [
@@ -216,11 +217,27 @@ const mxChain = {
 
     // PRIVATE
 
-    async _submitTx(message) {
+    async _submitTx(message, chainId = null) {
+      let signer;
+      let address;
+      if (chainId != null) {
+        console.log("chain != null")
+        let foundSigner = this.userSigners.find(s => s.chainId === chainId);
+        console.log("signer", foundSigner)
+        console.log("userSigners", this.userSigners);
+        signer = foundSigner.signer;
+        address = foundSigner.address;
+      } else {
+        signer = this.userSigner;
+        address = this.userAddress;
+      }
+
+      console.log("address in submittx", address)
+
       console.log("SUBMIT TX MSG", message)
-      const gasWanted = await this.userSigner.simulate(this.userAddress, [message])
+      const gasWanted = await signer.simulate(address, [message])
       const fee = this._calculateFee(gasWanted);
-      return await this.userSigner.signAndBroadcast(this.userAddress, [message], fee); // Return successful response
+      return await signer.signAndBroadcast(address, [message], fee); // Return successful response
     },
 
     // This has implemented as: https://hackmd.io/@3DOBr1TJQ3mQAFDEO0BXgg/S1N09wpQp

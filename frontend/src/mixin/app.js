@@ -19,22 +19,34 @@ const mxApp = {
       'fetchUserDelegations',
       // App
       'fetchAppConfig',
-      'fetchAppSupportedChains'
+      //'fetchAppSupportedChains',
+      'fetchDueUserChainRegistrations'
     ]),
 
     async fetchOnce() {
-      // Important as first
-      await this.initUser();
+      try {
+        // Important as first
+        await this.initUser();
 
-      // App-wise things
-      await this.fetchAppConfig();
-      await this.fetchAppSupportedChains();
+        // App-wise things
+        await this.fetchAppConfig();
+      } catch (e) {
+        // nothing
+        console.error(e)
+      }
     },
 
     async fetchInterval() {
-      if (this.userAddress) {
-        await this.fetchUserData();
-        await this.fetchUserDelegations()
+      try {
+        await this.fetchDueUserChainRegistrations()
+
+        if (this.userAddress) {
+          await this.fetchUserData();
+          await this.fetchUserDelegations()
+        }
+      } catch (e) {
+        // nothing
+        console.error(e)
       }
     },
 

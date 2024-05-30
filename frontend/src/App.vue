@@ -42,7 +42,7 @@ export default {
 
   async created() {
     try {
-      await this.suggestChain();
+      await this.suggestChain(JSON.parse(process.env.VUE_APP_CHAIN_INFO));
     } catch (e) {
       //console.error(e)
     }

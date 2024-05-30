@@ -90,6 +90,7 @@ pub struct ChainResponse {
     pub chain_id: String,
     pub connection_id: String,
     pub ica_address: Option<String>, // When this is set, the chain is ready to be used, until then dont use it
+    pub autocompound_cost: u128,
 }
 
 #[cw_serde]

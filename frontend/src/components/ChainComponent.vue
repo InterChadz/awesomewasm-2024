@@ -7,7 +7,7 @@
             <img :src="`/chains/${chain.chain_id}.png`" :alt="Icon" class="chain-image">{{ chain.chain_id }}
           </span>
 
-          <div class="restaking-toggle">
+          <div class="restaking-toggle" v-if="!isUserRegistered">
             <span class="toggle-label">User registered: </span>
             <label class="switch">
               <input type="checkbox" :checked="isUserRegistered" :disabled="isUserRegistered"
@@ -15,19 +15,15 @@
               <span class="slider round"></span>
             </label>
           </div>
+          <p v-else>YOU ARE REGISTERED</p>
         </div>
 
         <div class="chain-info">
           <ul class="list-unstyled">
-            <li>Autocompound Fee: {{ costToAutocompound }}</li>
-            <li>Last (auto)compound: {{ costToAutocompound }}</li>
+            <li>Autocompound Fee: {{ displayAmount(chain.autocompound_cost, 2) }}
+              <CoinComponent/>
+            </li>
           </ul>
-        </div>
-
-        <div class="action-buttons p-3">
-          <button @click="compound">Compound</button>
-          <!-- <button @click="withdrawStaked" disabled="true">Withdraw All</button>
-          <button @click="withdrawRewards" disabled="true">Withdraw Rewards</button> -->
         </div>
       </div>
       <div class="col-md-6">
@@ -42,6 +38,7 @@ import ChainStakingComponent from '@/components/ChainStakingComponent.vue';
 import mxChain from '@/mixin/chain';
 import mxToast from "@/mixin/toast";
 import {mapActions, mapGetters} from "vuex";
+import CoinComponent from "@/components/Common/CoinComponent.vue";
 
 export default {
   name: 'ChainComponent',
@@ -49,6 +46,7 @@ export default {
   mixins: [mxChain, mxToast],
 
   components: {
+    CoinComponent,
     ChainStakingComponent,
   },
 
@@ -60,9 +58,10 @@ export default {
   },
 
   computed: {
-    ...mapGetters(['userRegistrations', 'userAddress', 'userDelegations']),
+    ...mapGetters(['userRegistrations', 'userAddress', 'userDelegations', 'appDueUserRegistrations']),
 
     isUserRegistered() {
+      console.log(this.userRegistrations.some(registration => registration.chain_id === this.chain.chain_id))
       return this.userRegistrations.some(registration => registration.chain_id === this.chain.chain_id);
     }
   },
@@ -72,20 +71,12 @@ export default {
 
     async onChangeSwitch() {
       try {
-        await this.registerUser(this.chainId, this.userAddress, this.userDelegations);
+        await this.registerUser(this.chain.chain_id, this.userAddress, this.getValidatorsFromDelegations(this.userDelegations));
         this.toast.success("User registered successfully.");
         await this.fetchUserData()
       } catch (error) {
+        console.error("failed to reg", error)
         this.toast.error("Failed to register user.");
-      }
-    },
-
-    async compound() {
-      try {
-        await this.autocompound();
-        this.toast.success("Rewards compounded successfully.");
-      } catch (error) {
-        this.toast.error("Failed to compound rewards.");
       }
     }
   }

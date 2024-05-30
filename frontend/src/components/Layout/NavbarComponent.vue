@@ -3,6 +3,7 @@
     <div class="container-fluid">
       <router-link class="navbar-brand" to="/">
         <img class="logo" :src="imageLogo" :alt="title" />
+        Awesome Restaker
       </router-link>
 
       <button
@@ -21,7 +22,6 @@
         <div class="navbar-nav ms-auto text-end text-lg-center">
           <router-link to="/" class="nav-link py-lg-4 px-lg-5">Home</router-link>
           <router-link to="/staking" class="nav-link py-lg-4 px-lg-5">Staking</router-link>
-          <router-link to="/team" class="nav-link py-lg-4 px-lg-5">Team</router-link>
 
           <div class="nav-link py-lg-4 px-lg-5">
             <WalletComponent />
@@ -56,6 +56,7 @@ export default {
   .container-fluid {
     .logo {
       height: 80px;
+      border-radius: 50%;
     }
 
     .navbar-nav {

@@ -75,24 +75,6 @@ const mxChain = {
     // AuthZ
 
     async grantAuthZ(granter, grantee, address) {
-      // {
-      //    "@type":"/cosmos.authz.v1beta1.MsgGrant",
-      //    "granter":"cosmos10h9stc5v6ntgeygf5xf945njqq5h32r53uquvw",
-      //    "grantee":"cosmos1jat2z0ffpn7cu50zjxk4wyy89e945pczlv9jnegt5dlwhzkdeh9quhkt0a",
-      //    "grant":{
-      //       "authorization":{
-      //          "@type":"/cosmos.staking.v1beta1.StakeAuthorization",
-      //          "max_tokens":null,
-      //          "allow_list":{
-      //             "address":[
-      //                "cosmosvaloper18hl5c9xn5dze2g50uaw0l2mr02ew57zk0auktn"
-      //             ]
-      //          },
-      //          "authorization_type":"AUTHORIZATION_TYPE_DELEGATE"
-      //       },
-      //       "expiration":null
-      //    }
-      // }
       // Construct the message payload
       console.log("grantee", grantee)
       const msg = {
@@ -117,7 +99,29 @@ const mxChain = {
       console.log("authz grant msg", msg)
 
       // Submit the transaction
-      return this._submitTx(msg);
+      return this._submitTx(msg, "testy-2");
+    },
+
+    async revokeAuthZ(granter, grantee) {
+      // {
+      //    "@type":"/cosmos.authz.v1beta1.MsgRevoke",
+      //    "granter":"cosmos10h9stc5v6ntgeygf5xf945njqq5h32r53uquvw",
+      //    "grantee":"cosmos1ewfm37s7navswuva6p2v50657uyxrurplm50edtgvuhwjf0ervkstmxa2x",
+      //    "msg_type_url":"/cosmos.staking.v1beta1.MsgDelegate"
+      // }
+      console.log("grantee", grantee)
+      const msg = {
+        typeUrl: "/cosmos.authz.v1beta1.MsgRevoke",
+        value: {
+          granter, // the remote user account
+          grantee, // the ica account for the supported chain user is granting to
+          msgTypeUrl: "/cosmos.staking.v1beta1.MsgDelegate"
+        }
+      };
+      console.log("authz revoke msg", msg)
+
+      // Submit the transaction
+      return this._submitTx(msg, "testy-2");
     },
 
     // Utils
